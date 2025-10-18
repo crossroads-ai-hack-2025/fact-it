@@ -36,5 +36,10 @@
     "typescript"
   ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.52",
+    "ai": "^5.0.76",
+    "zod": "^4.1.12"
+  }
 }

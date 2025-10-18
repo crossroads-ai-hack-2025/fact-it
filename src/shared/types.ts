@@ -9,6 +9,10 @@ export enum MessageType {
   GET_SETTINGS = 'GET_SETTINGS',
   UPDATE_SETTINGS = 'UPDATE_SETTINGS',
   PING = 'PING',
+  DISCOVER_SELECTORS = 'DISCOVER_SELECTORS',
+  SELECTORS_DISCOVERED = 'SELECTORS_DISCOVERED',
+  VALIDATE_SELECTORS = 'VALIDATE_SELECTORS',
+  VALIDATION_RESULT = 'VALIDATION_RESULT',
 }
 
 // Platform types
@@ -56,13 +60,62 @@ export interface UpdateSettingsMessage {
   };
 }
 
+// Selector discovery messages
+export interface PlatformSelectors {
+  postContainer: string;
+  textContent: string;
+  author?: string;
+  timestamp?: string;
+}
+
+export interface DiscoverSelectorsMessage {
+  type: MessageType.DISCOVER_SELECTORS;
+  payload: {
+    domain: string;
+    htmlSample: string;
+  };
+}
+
+export interface SelectorsDiscoveredMessage {
+  type: MessageType.SELECTORS_DISCOVERED;
+  payload: {
+    domain: string;
+    selectors: PlatformSelectors;
+    confidence: number;
+    cached: boolean;
+    reasoning?: string;
+  };
+}
+
+export interface ValidateSelectorsMessage {
+  type: MessageType.VALIDATE_SELECTORS;
+  payload: {
+    domain: string;
+    selectors: PlatformSelectors;
+  };
+}
+
+export interface ValidationResultMessage {
+  type: MessageType.VALIDATION_RESULT;
+  payload: {
+    domain: string;
+    valid: boolean;
+    postsFound: number;
+    textExtractionRate: number; // 0-1
+  };
+}
+
 // Union type for all messages
 export type Message =
   | CheckClaimMessage
   | ClaimResultMessage
   | PingMessage
   | GetSettingsMessage
-  | UpdateSettingsMessage;
+  | UpdateSettingsMessage
+  | DiscoverSelectorsMessage
+  | SelectorsDiscoveredMessage
+  | ValidateSelectorsMessage
+  | ValidationResultMessage;
 
 // Settings interface
 export interface ExtensionSettings {
@@ -76,4 +129,5 @@ export interface ExtensionSettings {
 export const STORAGE_KEYS = {
   SETTINGS: 'fact_it_settings',
   CACHE: 'fact_it_cache',
+  SELECTORS: 'fact_it_selectors',
 } as const;

@@ -13,8 +13,7 @@
     "scripting"
   ],
   "host_permissions": [
-    "*://twitter.com/*",
-    "*://x.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -23,11 +22,10 @@
   "content_scripts": [
     {
       "matches": [
-        "*://twitter.com/*",
-        "*://x.com/*"
+        "<all_urls>"
       ],
       "js": [
-        "src/content/twitter-content.ts"
+        "src/content/universal-content.ts"
       ],
       "run_at": "document_idle"
     }

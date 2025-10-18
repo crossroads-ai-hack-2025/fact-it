@@ -8,27 +8,23 @@ import {
   MessageType,
   CheckClaimMessage,
   ClaimResultMessage,
+  DiscoverSelectorsMessage,
+  SelectorsDiscoveredMessage,
+  ValidationResultMessage,
   STORAGE_KEYS,
+  Verdict,
 } from '@/shared/types';
 import { EXTENSION_NAME } from '@/shared/constants';
+import { generateSelectorsWithRetry } from '@/background/selectors/selector-generator';
+import {
+  getCachedSelectors,
+  setCachedSelectors,
+  updateValidationTimestamp,
+  removeCachedSelectors,
+} from '@/background/selectors/selector-cache';
+import { aiClient } from '@/background/ai';
 
 console.info(`${EXTENSION_NAME}: Service worker loaded`);
-
-// Service worker install event
-self.addEventListener('install', (event) => {
-  console.info(`${EXTENSION_NAME}: Service worker installed`);
-  // Skip waiting to activate immediately
-  (event as ExtendableEvent).waitUntil((self as unknown as ServiceWorkerGlobalScope).skipWaiting());
-});
-
-// Service worker activate event
-self.addEventListener('activate', (event) => {
-  console.info(`${EXTENSION_NAME}: Service worker activated`);
-  // Claim all clients immediately
-  (event as ExtendableEvent).waitUntil(
-    (self as unknown as ServiceWorkerGlobalScope).clients.claim()
-  );
-});
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener(
@@ -57,6 +53,14 @@ chrome.runtime.onMessage.addListener(
         handleUpdateSettings(message, sendResponse);
         return true; // Keep channel open for async response
 
+      case MessageType.DISCOVER_SELECTORS:
+        handleDiscoverSelectors(message as DiscoverSelectorsMessage, sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.VALIDATION_RESULT:
+        handleValidationResult(message as ValidationResultMessage, sendResponse);
+        return true; // Keep channel open for async response
+
       default:
         console.warn(`${EXTENSION_NAME}: Unknown message type:`, (message as Message).type);
         sendResponse({ error: 'Unknown message type' });
@@ -74,7 +78,9 @@ function handlePing(sendResponse: (response: unknown) => void): void {
 
 /**
  * Handle claim checking requests
- * TODO: Implement actual AI verification in later phases
+ * Two-stage AI verification pipeline:
+ * Stage 1: GPT-4o-mini detects if text contains factual claims
+ * Stage 2: GPT-4o verifies claims with web search (if claims found)
  */
 async function handleCheckClaim(
   message: CheckClaimMessage,
@@ -84,34 +90,98 @@ async function handleCheckClaim(
     const { text, elementId, platform } = message.payload;
 
     console.info(
-      `${EXTENSION_NAME}: Checking claim (${platform}):`,
+      `${EXTENSION_NAME}: Processing claim check (${platform}):`,
       text.substring(0, 100) + '...'
     );
 
-    // Simulate API delay for now (replace with actual API calls later)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // STAGE 1: Detect if text contains factual claims
+    console.info(`${EXTENSION_NAME}: Starting Stage 1 - Claim Detection...`);
 
-    // Mock response for development
-    const result: ClaimResultMessage = {
+    let stage1Result;
+    try {
+      stage1Result = await aiClient.detectClaims(text);
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Stage 1 failed:`, error);
+      throw new Error(
+        `Claim detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+
+    // If no claims detected, return no_claim verdict
+    if (!stage1Result.hasClaim || stage1Result.claims.length === 0) {
+      console.info(`${EXTENSION_NAME}: Stage 1 - No claims detected`);
+      console.info(`${EXTENSION_NAME}: Reasoning: ${stage1Result.reasoning}`);
+
+      sendResponse({
+        type: MessageType.CLAIM_RESULT,
+        payload: {
+          elementId,
+          verdict: 'no_claim',
+          confidence: 0,
+          explanation: stage1Result.reasoning,
+          sources: [],
+        },
+      });
+      return;
+    }
+
+    // Claims found - proceed to Stage 2
+    console.info(
+      `${EXTENSION_NAME}: Stage 1 - Claims detected: ${stage1Result.claims.length}`
+    );
+    console.info(
+      `${EXTENSION_NAME}: Claims: ${stage1Result.claims.join('; ')}`
+    );
+
+    // STAGE 2: Verify the first claim using web search
+    // (In future: could verify multiple claims, for now just verify the first one)
+    const claimToVerify = stage1Result.claims[0];
+    console.info(`${EXTENSION_NAME}: Starting Stage 2 - Verification...`);
+    console.info(`${EXTENSION_NAME}: Verifying claim: "${claimToVerify}"`);
+
+    let stage2Result;
+    try {
+      stage2Result = await aiClient.verifyClaim(claimToVerify);
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Stage 2 failed:`, error);
+      // Return unknown verdict on verification failure
+      sendResponse({
+        type: MessageType.CLAIM_RESULT,
+        payload: {
+          elementId,
+          verdict: 'unknown',
+          confidence: 0,
+          explanation: `Verification failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your API keys in settings.`,
+          sources: [],
+        },
+      });
+      return;
+    }
+
+    // Return the verification result
+    console.info(
+      `${EXTENSION_NAME}: Stage 2 complete - Verdict: ${stage2Result.verdict} (${stage2Result.confidence}% confidence)`
+    );
+
+    sendResponse({
       type: MessageType.CLAIM_RESULT,
       payload: {
         elementId,
-        verdict: 'no_claim',
-        confidence: 0,
-        explanation:
-          'This is a placeholder response. API integration coming in Phase 2.',
-        sources: [],
+        verdict: stage2Result.verdict as Verdict,
+        confidence: stage2Result.confidence,
+        explanation: stage2Result.explanation,
+        sources: stage2Result.sources,
       },
-    };
-
-    sendResponse(result);
+    });
   } catch (error) {
-    console.error(`${EXTENSION_NAME}: Error checking claim:`, error);
+    console.error(`${EXTENSION_NAME}: Error in claim checking pipeline:`, error);
+
+    // Send error response
     sendResponse({
       type: MessageType.CLAIM_RESULT,
       payload: {
         elementId: message.payload.elementId,
-        verdict: 'no_claim',
+        verdict: 'unknown',
         confidence: 0,
         explanation: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         sources: [],
@@ -166,4 +236,114 @@ async function handleUpdateSettings(message: Message, sendResponse: (response: u
     console.error(`${EXTENSION_NAME}: Error updating settings:`, error);
     sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
+}
+
+/**
+ * Handle selector discovery requests
+ */
+async function handleDiscoverSelectors(
+  message: DiscoverSelectorsMessage,
+  sendResponse: (response: SelectorsDiscoveredMessage) => void
+): Promise<void> {
+  const { domain, htmlSample } = message.payload;
+
+  console.info(`${EXTENSION_NAME}: Selector discovery request for domain: ${domain}`);
+
+  try {
+    // Check cache first
+    const cachedEntry = await getCachedSelectors(domain);
+
+    if (cachedEntry) {
+      // Return cached selectors
+      console.info(`${EXTENSION_NAME}: Returning cached selectors for ${domain}`);
+
+      sendResponse({
+        type: MessageType.SELECTORS_DISCOVERED,
+        payload: {
+          domain,
+          selectors: cachedEntry.selectors,
+          confidence: cachedEntry.confidence,
+          cached: true,
+        },
+      });
+      return;
+    }
+
+    // No cache, discover selectors
+    console.info(`${EXTENSION_NAME}: No cache, discovering selectors for ${domain}...`);
+
+    const result = await generateSelectorsWithRetry(domain, htmlSample);
+
+    // Cache immediately with temporary validation metrics
+    // Will be updated when validation result comes back
+    await setCachedSelectors(
+      domain,
+      result.selectors,
+      result.confidence,
+      {
+        postsFound: 0,
+        textExtractionRate: 0,
+      }
+    );
+
+    // Return discovered selectors
+    sendResponse({
+      type: MessageType.SELECTORS_DISCOVERED,
+      payload: {
+        domain,
+        selectors: result.selectors,
+        confidence: result.confidence,
+        cached: false,
+        reasoning: result.reasoning,
+      },
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Selector discovery failed:`, error);
+    sendResponse({
+      type: MessageType.SELECTORS_DISCOVERED,
+      payload: {
+        domain,
+        selectors: {
+          postContainer: '',
+          textContent: '',
+        },
+        confidence: 0,
+        cached: false,
+      },
+    });
+  }
+}
+
+/**
+ * Handle validation results from content script
+ */
+async function handleValidationResult(
+  message: ValidationResultMessage,
+  sendResponse: (response: unknown) => void
+): Promise<void> {
+  const { domain, valid, postsFound, textExtractionRate } = message.payload;
+
+  console.info(
+    `${EXTENSION_NAME}: Validation result for ${domain}: ${valid ? 'VALID' : 'INVALID'} (${postsFound} posts, ${Math.round(textExtractionRate * 100)}% text rate)`
+  );
+
+  if (valid) {
+    // Update validation metrics in cache
+    try {
+      await updateValidationTimestamp(domain, { postsFound, textExtractionRate });
+      console.info(`${EXTENSION_NAME}: Updated validation metrics for ${domain}`);
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Error updating validation metrics:`, error);
+    }
+  } else {
+    // Validation failed - remove from cache
+    console.warn(`${EXTENSION_NAME}: Validation failed for ${domain}, removing from cache`);
+    try {
+      await removeCachedSelectors(domain);
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Error removing failed selectors from cache:`, error);
+    }
+  }
+
+  sendResponse({ success: true });
 }

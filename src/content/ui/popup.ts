@@ -17,6 +17,17 @@ export class FactCheckPopup {
       confidence: number;
       explanation: string;
       sources: Array<{ title: string; url: string }>;
+      providerResults?: Array<{
+        providerId: string;
+        providerName: string;
+        verdict: 'true' | 'false' | 'unknown';
+        confidence: number;
+        explanation: string;
+      }>;
+      consensus?: {
+        total: number;
+        agreeing: number;
+      };
     }
   ) {
     this.element = document.createElement('div');
@@ -185,7 +196,29 @@ export class FactCheckPopup {
           font-size: 11px;
           color: #888;
           margin-top: 4px;
-          text-align: right;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .provider-scores {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .provider-score {
+          font-size: 11px;
+          color: #888;
+        }
+
+        .provider-score-label {
+          font-weight: 500;
+        }
+
+        .overall-score {
+          font-weight: 600;
         }
 
         .explanation {
@@ -279,11 +312,11 @@ export class FactCheckPopup {
 
         <div class="content">
           <div class="confidence">
-            <div class="confidence-label">Confidence</div>
+            <div class="confidence-label">Overall Confidence</div>
             <div class="confidence-bar">
               <div class="confidence-fill"></div>
             </div>
-            <div class="confidence-text">${this.result.confidence}% confident</div>
+            <div class="confidence-text">${this.renderProviderScores()}</div>
           </div>
 
           <div class="explanation">${this.escapeHtml(this.result.explanation)}</div>
@@ -317,6 +350,12 @@ export class FactCheckPopup {
         </div>
       </div>
     `;
+
+    // Prevent clicks inside popup from bubbling to underlying page
+    const popupElement = this.shadowRoot.querySelector('.popup');
+    popupElement?.addEventListener('click', (e: Event) => {
+      e.stopPropagation(); // Prevent clicks from bubbling through to post
+    });
 
     // Close button handler
     const closeBtn = this.shadowRoot.querySelector('.close');
@@ -392,5 +431,35 @@ export class FactCheckPopup {
   private truncate(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength - 3) + '...';
+  }
+
+  /**
+   * Render provider scores inline below confidence bar
+   */
+  private renderProviderScores(): string {
+    if (!this.result.providerResults || this.result.providerResults.length === 0) {
+      return `${this.result.confidence}% confident`;
+    }
+
+    // Map provider IDs to short names
+    const providerShortNames: Record<string, string> = {
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+      perplexity: 'Perplexity',
+    };
+
+    const providerScores = this.result.providerResults
+      .map((provider) => {
+        const shortName = providerShortNames[provider.providerId] || provider.providerName;
+        return `<span class="provider-score"><span class="provider-score-label">${shortName}:</span> ${provider.confidence}%</span>`;
+      })
+      .join('');
+
+    return `
+      <div class="provider-scores">
+        ${providerScores}
+      </div>
+      <span class="overall-score">Agg: ${this.result.confidence}%</span>
+    `;
   }
 }

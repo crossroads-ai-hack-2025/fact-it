@@ -13,6 +13,8 @@ export enum MessageType {
   SELECTORS_DISCOVERED = 'SELECTORS_DISCOVERED',
   VALIDATE_SELECTORS = 'VALIDATE_SELECTORS',
   VALIDATION_RESULT = 'VALIDATION_RESULT',
+  GET_CACHE_STATS = 'GET_CACHE_STATS',
+  CLEAR_CACHE = 'CLEAR_CACHE',
 }
 
 // Platform types
@@ -121,6 +123,23 @@ export interface ValidationResultMessage {
   };
 }
 
+// Cache management messages
+export interface GetCacheStatsMessage {
+  type: MessageType.GET_CACHE_STATS;
+}
+
+export interface CacheStatsMessage {
+  totalEntries: number;
+  oldestEntry: number;
+  newestEntry: number;
+  averageAge: number;
+  storageEstimateMB: number;
+}
+
+export interface ClearCacheMessage {
+  type: MessageType.CLEAR_CACHE;
+}
+
 // Union type for all messages
 export type Message =
   | CheckClaimMessage
@@ -131,7 +150,9 @@ export type Message =
   | DiscoverSelectorsMessage
   | SelectorsDiscoveredMessage
   | ValidateSelectorsMessage
-  | ValidationResultMessage;
+  | ValidationResultMessage
+  | GetCacheStatsMessage
+  | ClearCacheMessage;
 
 // Provider settings interface
 export interface ProviderSettings {

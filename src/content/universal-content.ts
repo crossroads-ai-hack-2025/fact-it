@@ -497,6 +497,8 @@ function sendToBackground(text: string, elementId: string): void {
         confidence: response.payload.confidence,
         explanation: response.payload.explanation,
         sources: response.payload.sources,
+        providerResults: response.payload.providerResults,
+        consensus: response.payload.consensus,
       });
     }
   });

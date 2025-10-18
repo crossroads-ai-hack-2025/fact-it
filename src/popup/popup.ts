@@ -51,6 +51,13 @@ const thresholdValueSpan = document.getElementById('threshold-value') as HTMLSpa
 const saveButton = document.getElementById('save-settings') as HTMLButtonElement;
 const saveFeedback = document.getElementById('save-feedback') as HTMLDivElement;
 
+// DOM elements - cache management
+const cacheEntriesSpan = document.getElementById('cache-entries') as HTMLSpanElement;
+const cacheStorageSpan = document.getElementById('cache-storage') as HTMLSpanElement;
+const cacheAgeSpan = document.getElementById('cache-age') as HTMLSpanElement;
+const clearCacheButton = document.getElementById('clear-cache-btn') as HTMLButtonElement;
+const cacheFeedback = document.getElementById('cache-feedback') as HTMLDivElement;
+
 // Initialize popup
 init();
 
@@ -60,6 +67,9 @@ async function init(): Promise<void> {
 
   // Load existing settings
   await loadSettings();
+
+  // Load cache stats
+  await loadCacheStats();
 
   // Setup event listeners
   setupEventListeners();
@@ -142,6 +152,9 @@ function setupEventListeners(): void {
   confidenceThresholdInput.addEventListener('input', () => {
     thresholdValueSpan.textContent = confidenceThresholdInput.value;
   });
+
+  // Clear cache button
+  clearCacheButton.addEventListener('click', clearCache);
 
   // Provider-specific event listeners
   for (const providerId of Object.keys(providers) as ProviderId[]) {
@@ -320,5 +333,104 @@ function showFeedback(message: string, type: 'success' | 'error'): void {
   // Auto-hide after 5 seconds
   setTimeout(() => {
     saveFeedback.style.display = 'none';
+  }, 5000);
+}
+
+/**
+ * Load cache statistics
+ */
+async function loadCacheStats(): Promise<void> {
+  try {
+    chrome.runtime.sendMessage({ type: MessageType.GET_CACHE_STATS }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(`${EXTENSION_NAME}: Failed to load cache stats:`, chrome.runtime.lastError);
+        return;
+      }
+
+      const stats = response.stats as {
+        totalEntries: number;
+        oldestEntry: number;
+        newestEntry: number;
+        averageAge: number;
+        storageEstimateMB: number;
+      };
+
+      // Update UI
+      cacheEntriesSpan.textContent = String(stats.totalEntries);
+      cacheStorageSpan.textContent = `${stats.storageEstimateMB.toFixed(2)} MB`;
+
+      // Format average age
+      if (stats.totalEntries > 0) {
+        const avgAgeDays = Math.floor(stats.averageAge / 86400000);
+        const avgAgeHours = Math.floor((stats.averageAge % 86400000) / 3600000);
+        if (avgAgeDays > 0) {
+          cacheAgeSpan.textContent = `${avgAgeDays}d ${avgAgeHours}h`;
+        } else {
+          cacheAgeSpan.textContent = `${avgAgeHours}h`;
+        }
+      } else {
+        cacheAgeSpan.textContent = 'N/A';
+      }
+
+      console.info(`${EXTENSION_NAME}: Cache stats loaded:`, stats);
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error loading cache stats:`, error);
+  }
+}
+
+/**
+ * Clear cache
+ */
+async function clearCache(): Promise<void> {
+  try {
+    const confirmClear = confirm('Are you sure you want to clear the fact-check cache? This will remove all cached results.');
+
+    if (!confirmClear) {
+      return;
+    }
+
+    clearCacheButton.textContent = 'Clearing...';
+    clearCacheButton.disabled = true;
+
+    chrome.runtime.sendMessage({ type: MessageType.CLEAR_CACHE }, (response) => {
+      clearCacheButton.textContent = 'Clear Cache';
+      clearCacheButton.disabled = false;
+
+      if (chrome.runtime.lastError) {
+        console.error(`${EXTENSION_NAME}: Failed to clear cache:`, chrome.runtime.lastError);
+        showCacheFeedback('Failed to clear cache', 'error');
+        return;
+      }
+
+      if (response.success) {
+        console.info(`${EXTENSION_NAME}: Cache cleared successfully`);
+        showCacheFeedback('Cache cleared successfully!', 'success');
+
+        // Reload cache stats
+        loadCacheStats();
+      } else {
+        showCacheFeedback('Failed to clear cache', 'error');
+      }
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error clearing cache:`, error);
+    showCacheFeedback('Error clearing cache', 'error');
+    clearCacheButton.textContent = 'Clear Cache';
+    clearCacheButton.disabled = false;
+  }
+}
+
+/**
+ * Show cache feedback message
+ */
+function showCacheFeedback(message: string, type: 'success' | 'error'): void {
+  cacheFeedback.textContent = message;
+  cacheFeedback.className = `feedback-message ${type}`;
+  cacheFeedback.style.display = 'block';
+
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    cacheFeedback.style.display = 'none';
   }, 5000);
 }

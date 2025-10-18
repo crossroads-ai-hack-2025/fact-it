@@ -178,6 +178,29 @@
             </p>
           </div>
         </section>
+
+        <section class="cache-section">
+          <h3>Cache Status</h3>
+          <p class="help-text">Cached results avoid redundant API calls for identical posts, saving time and costs.</p>
+
+          <div class="cache-stats">
+            <div class="stat-item">
+              <span class="stat-label">Cached Results:</span>
+              <span class="stat-value" id="cache-entries">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Storage Used:</span>
+              <span class="stat-value" id="cache-storage">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Average Age:</span>
+              <span class="stat-value" id="cache-age">-</span>
+            </div>
+          </div>
+
+          <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+          <div id="cache-feedback" class="feedback-message"></div>
+        </section>
       </main>
 
       <footer>

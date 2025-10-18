@@ -106,6 +106,17 @@ export class FactCheckIndicator {
     confidence: number;
     explanation: string;
     sources: Array<{ title: string; url: string }>;
+    providerResults?: Array<{
+      providerId: string;
+      providerName: string;
+      verdict: 'true' | 'false' | 'unknown';
+      confidence: number;
+      explanation: string;
+    }>;
+    consensus?: {
+      total: number;
+      agreeing: number;
+    };
   }): void {
     const colors: Record<Verdict, string> = {
       true: '#4CAF50',
@@ -187,11 +198,15 @@ export class FactCheckIndicator {
     // Add click handler for popup (only if not no_claim)
     if (result.verdict !== 'no_claim') {
       const indicator = this.shadowRoot.querySelector('.indicator');
-      indicator?.addEventListener('click', () => this.showPopup(result));
+      indicator?.addEventListener('click', (e: Event) => {
+        e.stopPropagation(); // Prevent click from bubbling to post
+        this.showPopup(result);
+      });
       indicator?.addEventListener('keydown', (e: Event) => {
         const keyEvent = e as KeyboardEvent;
         if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
           e.preventDefault();
+          e.stopPropagation(); // Prevent event from bubbling to post
           this.showPopup(result);
         }
       });
@@ -206,6 +221,17 @@ export class FactCheckIndicator {
     confidence: number;
     explanation: string;
     sources: Array<{ title: string; url: string }>;
+    providerResults?: Array<{
+      providerId: string;
+      providerName: string;
+      verdict: 'true' | 'false' | 'unknown';
+      confidence: number;
+      explanation: string;
+    }>;
+    consensus?: {
+      total: number;
+      agreeing: number;
+    };
   }): void {
     // Close existing popup if any
     if (this.popup) {

@@ -7,6 +7,7 @@ import { EXTENSION_NAME } from '@/shared/constants';
 import { STORAGE_KEYS } from '@/shared/types';
 import { providerRegistry, ProviderId } from './providers/registry';
 import { AggregatedResult, ProviderResult } from './providers/types';
+import { getCachedResult, setCachedResult } from '@/background/cache/fact-check-cache';
 
 export class FactCheckOrchestrator {
   /**
@@ -166,6 +167,15 @@ export class FactCheckOrchestrator {
    * @returns Aggregated result from all enabled providers
    */
   async checkClaim(text: string): Promise<AggregatedResult> {
+    // Check cache first
+    const cachedResult = await getCachedResult(text);
+    if (cachedResult) {
+      console.info(
+        `${EXTENSION_NAME}: Returning cached result (verdict: ${cachedResult.verdict}, confidence: ${cachedResult.confidence}%)`
+      );
+      return cachedResult;
+    }
+
     const enabledProviders = await this.getEnabledProviders();
 
     if (enabledProviders.length === 0) {
@@ -282,6 +292,9 @@ export class FactCheckOrchestrator {
     console.info(
       `${EXTENSION_NAME}: Final verdict: ${aggregatedResult.verdict} (confidence: ${aggregatedResult.confidence}%, consensus: ${aggregatedResult.consensus.agreeing}/${aggregatedResult.consensus.total})`
     );
+
+    // Cache the result for future lookups
+    await setCachedResult(text, aggregatedResult);
 
     return aggregatedResult;
   }

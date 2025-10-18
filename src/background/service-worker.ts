@@ -24,6 +24,7 @@ import {
 } from '@/background/selectors/selector-cache';
 import { getStaticSelectorsForDomain } from '@/background/selectors/static-selectors';
 import { orchestrator } from '@/background/ai/orchestrator';
+import { getCacheStats, clearFactCheckCache } from '@/background/cache/fact-check-cache';
 
 console.info(`${EXTENSION_NAME}: Service worker loaded`);
 
@@ -60,6 +61,14 @@ chrome.runtime.onMessage.addListener(
 
       case MessageType.VALIDATION_RESULT:
         handleValidationResult(message as ValidationResultMessage, sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.GET_CACHE_STATS:
+        handleGetCacheStats(sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.CLEAR_CACHE:
+        handleClearCache(sendResponse);
         return true; // Keep channel open for async response
 
       default:
@@ -371,4 +380,30 @@ async function handleValidationResult(
   }
 
   sendResponse({ success: true });
+}
+
+/**
+ * Handle cache stats request
+ */
+async function handleGetCacheStats(sendResponse: (response: unknown) => void): Promise<void> {
+  try {
+    const stats = await getCacheStats();
+    sendResponse({ stats });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error getting cache stats:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+/**
+ * Handle clear cache request
+ */
+async function handleClearCache(sendResponse: (response: unknown) => void): Promise<void> {
+  try {
+    await clearFactCheckCache();
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error clearing cache:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
 }

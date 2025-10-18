@@ -14,8 +14,10 @@ export const SELECTORS = {
     fallback: 'div[lang]',
   },
   linkedin: {
-    postContainer: 'div[role="article"]',
-    textContent: 'div.feed-shared-update-v2__description',
+    postContainer:
+      'div[role="article"], article[role="article"], div[data-urn^="urn:li:activity"], div[data-id^="urn:li:activity"]',
+    textContent:
+      'div.update-components-text span[dir], div.feed-shared-update-v2__description, div[role="article"] span.break-words',
     author: 'a.update-components-actor__meta-link',
     timestamp: 'span.update-components-actor__sub-description',
   },

@@ -238,9 +238,10 @@ interface TwitterSelectors {
 **LinkedIn**
 ```typescript
 interface LinkedInSelectors {
-  postContainer: '.feed-shared-update-v2';
-  textContent: '.feed-shared-update-v2__description';
-  urn: '[data-urn]'; // Unique post identifier
+  postContainer:
+    'div[role="article"], article[role="article"], div[data-urn^="urn:li:activity"], div[data-id^="urn:li:activity"]';
+  textContent: 'div.update-components-text span[dir], .feed-shared-update-v2__description';
+  urn: '[data-urn], [data-id^="urn:li:activity"]'; // Unique post identifier
 }
 ```
 

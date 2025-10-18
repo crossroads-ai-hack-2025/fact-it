@@ -74,36 +74,15 @@ export async function getAllSelectors(): Promise<DomainSelectorMap> {
 export async function getSelectorsForDomain(domain: string): Promise<PlatformSelectors | null> {
   try {
     const allSelectors = await getAllSelectors();
+    const match = findSelectorsForDomain(allSelectors, domain);
 
-    // Direct lookup
-    if (allSelectors[domain]) {
-      console.info(`${EXTENSION_NAME}: Found selectors for domain: ${domain}`);
-      return allSelectors[domain];
+    if (!match) {
+      console.info(`${EXTENSION_NAME}: No selectors found for domain: ${domain}`);
+      return null;
     }
 
-    // Try normalized domain (remove www prefix)
-    const normalizedDomain = domain.toLowerCase().replace(/^www\./, '');
-    if (allSelectors[normalizedDomain]) {
-      console.info(`${EXTENSION_NAME}: Found selectors for normalized domain: ${normalizedDomain}`);
-      return allSelectors[normalizedDomain];
-    }
-
-    // Try with www prefix
-    const withWww = `www.${normalizedDomain}`;
-    if (allSelectors[withWww]) {
-      console.info(`${EXTENSION_NAME}: Found selectors for domain with www: ${withWww}`);
-      return allSelectors[withWww];
-    }
-
-    // Try base domain (remove subdomains)
-    const baseDomain = extractBaseDomain(normalizedDomain);
-    if (baseDomain !== normalizedDomain && allSelectors[baseDomain]) {
-      console.info(`${EXTENSION_NAME}: Found selectors for base domain: ${baseDomain}`);
-      return allSelectors[baseDomain];
-    }
-
-    console.info(`${EXTENSION_NAME}: No selectors found for domain: ${domain}`);
-    return null;
+    console.info(`${EXTENSION_NAME}: Found selectors for domain key: ${match.key}`);
+    return await maybeMigrateSelectors(match.key, match.selectors, allSelectors);
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Failed to get selectors for domain:`, error);
     return null;
@@ -240,4 +219,90 @@ function extractBaseDomain(domain: string): string {
 
   // Standard TLD - return domain.tld (last 2 parts)
   return parts.slice(-2).join('.');
+}
+
+function findSelectorsForDomain(
+  allSelectors: DomainSelectorMap,
+  domain: string
+): { key: string; selectors: PlatformSelectors } | null {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (value: string) => {
+    const normalizedValue = value.trim();
+    if (!normalizedValue || seen.has(normalizedValue)) {
+      return;
+    }
+    seen.add(normalizedValue);
+    candidates.push(normalizedValue);
+  };
+
+  pushCandidate(domain);
+
+  const lowerCased = domain.toLowerCase();
+  pushCandidate(lowerCased);
+
+  const withoutWww = lowerCased.replace(/^www\./, '');
+  pushCandidate(withoutWww);
+
+  const withWww = `www.${withoutWww}`;
+  pushCandidate(withWww);
+
+  const baseDomain = extractBaseDomain(withoutWww);
+  if (baseDomain !== withoutWww) {
+    pushCandidate(baseDomain);
+  }
+
+  for (const candidate of candidates) {
+    const selectors = allSelectors[candidate];
+    if (selectors) {
+      return { key: candidate, selectors };
+    }
+  }
+
+  return null;
+}
+
+async function maybeMigrateSelectors(
+  domainKey: string,
+  selectors: PlatformSelectors,
+  allSelectors: DomainSelectorMap
+): Promise<PlatformSelectors> {
+  if (!isLinkedInDomain(domainKey)) {
+    return selectors;
+  }
+
+  const normalizedPost = normalizeSelector(selectors.postContainer);
+  const normalizedText = normalizeSelector(selectors.textContent);
+
+  const needsPostMigration =
+    normalizedPost === '.feed-shared-update-v2' || normalizedPost === 'div.feed-shared-update-v2';
+  const needsTextMigration =
+    normalizedText === '.feed-shared-update-v2__description' ||
+    normalizedText === 'div.feed-shared-update-v2__description';
+
+  if (!needsPostMigration && !needsTextMigration) {
+    return selectors;
+  }
+
+  const migratedSelectors: PlatformSelectors = {
+    ...selectors,
+    postContainer: needsPostMigration ? SELECTORS.linkedin.postContainer : selectors.postContainer,
+    textContent: needsTextMigration ? SELECTORS.linkedin.textContent : selectors.textContent,
+  };
+
+  allSelectors[domainKey] = migratedSelectors;
+  await chrome.storage.local.set({ [STORAGE_KEYS.SELECTORS]: allSelectors });
+  console.info(`${EXTENSION_NAME}: Migrated LinkedIn selectors for ${domainKey} to new defaults`);
+
+  return migratedSelectors;
+}
+
+function normalizeSelector(selector: string): string {
+  return selector.replace(/\s+/g, ' ').trim();
+}
+
+function isLinkedInDomain(domain: string): boolean {
+  const normalized = domain.toLowerCase().replace(/^www\./, '');
+  return normalized === 'linkedin.com';
 }

@@ -10,10 +10,9 @@ Fact-It is a Chrome extension (Manifest V3) that provides real-time fact-checkin
 
 ```bash
 # Primary development workflow
-npm run dev          # Start Vite dev server with HMR - USE THIS for development
+npm run build        # Build extension to dist/ folder
 
 # Build and quality
-npm run build        # Production build (minified, no source maps)
 npm run type-check   # Run TypeScript compiler checks
 npm run lint         # Check code quality with ESLint
 npm run lint:fix     # Auto-fix ESLint issues
@@ -22,14 +21,18 @@ npm run format       # Format code with Prettier
 
 ## Chrome Extension Development Workflow
 
-1. Run `npm run dev` to build to `dist/` folder with HMR enabled
+**Current workflow: Static build + manual reload (no HMR)**
+
+1. Run `npm run build` to build to `dist/` folder
 2. Load `dist/` folder in Chrome via `chrome://extensions` (Developer mode → Load unpacked)
-3. Make code changes → Extension auto-reloads (via vite-plugin-web-extension)
-4. **Important reload behaviors:**
-   - `manifest.json` changes → Manual reload required in `chrome://extensions`
-   - Content script changes → Refresh the target page (Twitter/X)
-   - Background worker changes → Auto-reloads via HMR
-   - Popup changes → Close and reopen popup
+3. Make code changes → Run `npm run build` → **Manually reload extension** in Chrome
+4. **Reload requirements after build:**
+   - `manifest.json` changes → Click reload button in `chrome://extensions`
+   - Content script changes → Click reload button + refresh target page (LinkedIn/Twitter)
+   - Background worker changes → Click reload button in `chrome://extensions`
+   - Popup changes → Click reload button + reopen popup
+
+**Note**: The `npm run dev` HMR workflow is available but not currently in use. Manual reload provides more predictable behavior during development.
 
 ## Architecture: Message Passing System
 

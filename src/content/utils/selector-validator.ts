@@ -79,13 +79,13 @@ export function validateSelectors(selectors: PlatformSelectors): ValidationResul
     );
 
     // Validation criteria:
-    // 1. At least 5 posts found
+    // 1. At least 2 posts found (LinkedIn loads 2-3 initially, more on scroll)
     // 2. At least 65% have extractable text
-    const valid = postsFound >= 5 && textExtractionRate >= 0.65;
+    const valid = postsFound >= 2 && textExtractionRate >= 0.65;
 
     if (!valid) {
-      if (postsFound < 5) {
-        errors.push(`Only ${postsFound} posts found, need at least 5`);
+      if (postsFound < 2) {
+        errors.push(`Only ${postsFound} posts found, need at least 2`);
       }
       if (textExtractionRate < 0.65) {
         errors.push(
@@ -125,7 +125,7 @@ export function quickValidate(postContainerSelector: string): {
   try {
     const containers = document.querySelectorAll(postContainerSelector);
     const postsFound = containers.length;
-    const valid = postsFound >= 5;
+    const valid = postsFound >= 2;
 
     return { postsFound, valid };
   } catch (error) {

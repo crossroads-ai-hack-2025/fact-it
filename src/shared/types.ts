@@ -54,7 +54,6 @@ export interface UpdateSettingsMessage {
   type: MessageType.UPDATE_SETTINGS;
   payload: {
     openaiApiKey?: string;
-    braveSearchApiKey?: string;
     autoCheckEnabled?: boolean;
     confidenceThreshold?: number;
   };
@@ -120,7 +119,6 @@ export type Message =
 // Settings interface
 export interface ExtensionSettings {
   openaiApiKey: string | null;
-  braveSearchApiKey: string | null;
   autoCheckEnabled: boolean;
   confidenceThreshold: number; // 0-100, only show results above this confidence
 }

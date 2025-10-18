@@ -3,12 +3,11 @@
  * Handles AI operations using Vercel AI SDK
  */
 
-import { generateObject } from 'ai';
+import { generateObject, generateText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { STORAGE_KEYS } from '@/shared/types';
 import { EXTENSION_NAME } from '@/shared/constants';
-import { BraveSearchClient } from '@/background/search/brave-search';
 
 /**
  * Zod schema for selector discovery response
@@ -74,7 +73,6 @@ export type VerificationVerdictResult = z.infer<typeof VerificationVerdictSchema
 
 export class AIClient {
   private apiKey: string | null = null;
-  private braveSearchClient: BraveSearchClient | null = null;
 
   constructor() {
     // API key loaded on-demand from storage
@@ -100,26 +98,6 @@ export class AIClient {
     return apiKey;
   }
 
-  /**
-   * Load Brave Search API key and initialize client
-   */
-  private async loadBraveSearchClient(): Promise<BraveSearchClient> {
-    if (this.braveSearchClient) {
-      return this.braveSearchClient;
-    }
-
-    const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-    const settings = result[STORAGE_KEYS.SETTINGS];
-
-    if (!settings?.braveSearchApiKey) {
-      throw new Error(
-        'Brave Search API key not configured. Please add it in the extension settings.'
-      );
-    }
-
-    this.braveSearchClient = new BraveSearchClient(settings.braveSearchApiKey);
-    return this.braveSearchClient;
-  }
 
   /**
    * Specialized method for selector discovery
@@ -257,15 +235,14 @@ Be conservative: only identify claims that can be fact-checked against reliable 
   }
 
   /**
-   * Stage 2: Verify factual claim using GPT-4o with web search
-   * Uses function calling to search the web and synthesize evidence
+   * Stage 2: Verify factual claim using GPT-4o with built-in web search
+   * Uses OpenAI's integrated web search tool to find and synthesize evidence
    *
    * @param claim - Factual claim to verify
    * @returns Verification verdict with confidence, explanation, and sources
    */
   async verifyClaim(claim: string): Promise<VerificationVerdictResult> {
     const apiKey = await this.loadApiKey();
-    const braveSearch = await this.loadBraveSearchClient();
 
     console.info(`${EXTENSION_NAME}: Stage 2 - Verifying claim (model: gpt-4o)`);
     console.info(`${EXTENSION_NAME}: Claim: "${claim}"`);
@@ -296,32 +273,19 @@ IMPORTANT GUIDELINES:
 - Consider recency of sources for time-sensitive claims
 - Acknowledge uncertainty and conflicting evidence
 - Prefer "unknown" for claims that cannot be verified with available evidence
-
-Always search the web before making your final determination.`;
+- Always use web search to find current, authoritative information`;
 
     const openai = createOpenAI({ apiKey });
 
-    // For simplicity in Phase 2, we'll perform a web search ourselves
-    // and then ask GPT-4o to analyze the results
-    // This avoids complex function calling setup and gets us working faster
+    console.info(`${EXTENSION_NAME}: Using OpenAI built-in web search...`);
 
-    console.info(`${EXTENSION_NAME}: Performing web search for claim...`);
+    // Use generateText with built-in web search tool
+    const result = await generateText({
+      model: openai('gpt-4o'),
+      system: systemPrompt,
+      prompt: `Verify this claim and provide a detailed analysis: "${claim}"
 
-    // Search the web for the claim
-    const searchResults = await braveSearch.search(claim, 5);
-    const formattedResults = braveSearch.formatResultsForLLM(searchResults);
-
-    console.info(
-      `${EXTENSION_NAME}: Search complete, ${searchResults.length} results found`
-    );
-
-    // Now ask GPT-4o to analyze the search results and provide a verdict
-    const analysisPrompt = `Verify this claim based on the search results below: "${claim}"
-
-SEARCH RESULTS:
-${formattedResults}
-
-Based on these search results, provide your verdict as a JSON object with this exact structure:
+Return your response in this exact JSON format:
 {
   "verdict": "true" | "false" | "unknown",
   "confidence": <number 0-100>,
@@ -335,18 +299,58 @@ Remember:
 - "true" if claim is supported by multiple credible sources
 - "false" if claim is contradicted by credible evidence
 - "unknown" if insufficient evidence or conflicting information
-- Include the most relevant sources in your response (max 5)
-- Be conservative - prefer "unknown" when uncertain`;
-
-    const { object: verdictResult } = await generateObject({
-      model: openai('gpt-4o'),
-      schema: VerificationVerdictSchema,
-      system: systemPrompt,
-      prompt: analysisPrompt,
+- Include the most relevant sources (max 5)
+- Be conservative - prefer "unknown" when uncertain`,
+      tools: {
+        web_search: openai.tools.webSearch({
+          searchContextSize: 'high', // Use comprehensive search context
+        }),
+      },
       temperature: 0.5,
     });
 
-    console.info(`${EXTENSION_NAME}: Stage 2 - Analysis complete`);
+    console.info(`${EXTENSION_NAME}: Stage 2 - Web search and analysis complete`);
+
+    // Parse the JSON response from the model
+    let verdictResult: VerificationVerdictResult;
+    try {
+      // Extract JSON from the text response (model should return JSON)
+      const jsonMatch = result.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+
+      const parsedJson = JSON.parse(jsonMatch[0]);
+      verdictResult = VerificationVerdictSchema.parse(parsedJson);
+
+      // If the model didn't include sources in JSON but result.sources exists, use those
+      if ((!verdictResult.sources || verdictResult.sources.length === 0) && result.sources) {
+        verdictResult.sources = result.sources
+          .filter((source) => source.type === 'source' && 'url' in source)
+          .map((source) => ({
+            title: 'title' in source ? (source.title as string) || 'Source' : 'Source',
+            url: (source as any).url as string,
+          }));
+      }
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Failed to parse verification result:`, error);
+      console.error(`${EXTENSION_NAME}: Raw response:`, result.text);
+
+      // Fallback: return unknown verdict with error explanation
+      verdictResult = {
+        verdict: 'unknown',
+        confidence: 0,
+        explanation: `Failed to parse verification result: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        sources: result.sources
+          ? result.sources
+              .filter((s) => s.type === 'source' && 'url' in s)
+              .map((s) => ({
+                title: 'title' in s ? (s.title as string) || 'Source' : 'Source',
+                url: (s as any).url as string,
+              }))
+          : [],
+      };
+    }
 
     console.info(
       `${EXTENSION_NAME}: Stage 2 - Verdict: ${verdictResult.verdict} (confidence: ${verdictResult.confidence}%)`

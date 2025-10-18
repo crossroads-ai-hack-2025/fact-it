@@ -27,7 +27,8 @@
           <div class="form-group">
             <label for="openai-api-key">
               OpenAI API Key
-              <span class="optional">(required for fact-checking)</span>
+              <span class="optional">(required for fact-checking and web search)</span>
+              <span class="config-status" id="openai-status"></span>
             </label>
             <input
               type="password"
@@ -40,25 +41,8 @@
               <a href="https://platform.openai.com/api-keys" target="_blank">
                 platform.openai.com
               </a>
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label for="brave-api-key">
-              Brave Search API Key
-              <span class="optional">(required for verification)</span>
-            </label>
-            <input
-              type="password"
-              id="brave-api-key"
-              placeholder="BSA..."
-              autocomplete="off"
-            />
-            <small class="help-text">
-              Get your API key from
-              <a href="https://brave.com/search/api/" target="_blank">
-                brave.com/search/api
-              </a>
+              <br />
+              Note: Uses OpenAI's built-in web search for fact verification
             </small>
           </div>
 
@@ -92,8 +76,8 @@
         <section class="info">
           <h3>Getting Started</h3>
           <ol>
-            <li>Get API keys from OpenAI and Brave Search (links above)</li>
-            <li>Enter your API keys and save settings</li>
+            <li>Get your OpenAI API key (link above)</li>
+            <li>Enter your API key and save settings</li>
             <li>Visit Twitter/X and start scrolling</li>
             <li>The extension will automatically check posts for factual claims</li>
           </ol>

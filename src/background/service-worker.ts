@@ -198,7 +198,6 @@ async function handleGetSettings(sendResponse: (response: unknown) => void): Pro
     const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const settings = result[STORAGE_KEYS.SETTINGS] || {
       openaiApiKey: null,
-      braveSearchApiKey: null,
       autoCheckEnabled: true,
       confidenceThreshold: 70,
     };

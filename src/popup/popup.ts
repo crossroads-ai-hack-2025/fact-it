@@ -11,11 +11,11 @@ console.info(`${EXTENSION_NAME}: Popup loaded`);
 const statusIndicator = document.getElementById('status-indicator') as HTMLDivElement;
 const statusText = document.getElementById('status-text') as HTMLSpanElement;
 const openaiApiKeyInput = document.getElementById('openai-api-key') as HTMLInputElement;
-const braveApiKeyInput = document.getElementById('brave-api-key') as HTMLInputElement;
 const autoCheckInput = document.getElementById('auto-check') as HTMLInputElement;
 const confidenceThresholdInput = document.getElementById('confidence-threshold') as HTMLInputElement;
 const thresholdValueSpan = document.getElementById('threshold-value') as HTMLSpanElement;
 const saveButton = document.getElementById('save-settings') as HTMLButtonElement;
+const openaiStatusSpan = document.getElementById('openai-status') as HTMLSpanElement;
 
 // Initialize popup
 init();
@@ -74,15 +74,14 @@ async function loadSettings(): Promise<void> {
         openaiApiKeyInput.value = settings.openaiApiKey;
       }
 
-      if (settings.braveSearchApiKey) {
-        braveApiKeyInput.value = settings.braveSearchApiKey;
-      }
-
       autoCheckInput.checked = settings.autoCheckEnabled ?? true;
       confidenceThresholdInput.value = String(settings.confidenceThreshold ?? 70);
       thresholdValueSpan.textContent = String(settings.confidenceThreshold ?? 70);
 
       console.info(`${EXTENSION_NAME}: Settings loaded`);
+
+      // Update configuration status indicators
+      updateConfigurationStatus(settings);
     });
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Error loading settings:`, error);
@@ -103,12 +102,10 @@ function setupEventListeners(): void {
   });
 
   // Enter key to save
-  [openaiApiKeyInput, braveApiKeyInput].forEach((input) => {
-    input.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        saveSettings();
-      }
-    });
+  openaiApiKeyInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      saveSettings();
+    }
   });
 }
 
@@ -123,7 +120,6 @@ async function saveSettings(): Promise<void> {
   try {
     const settings = {
       openaiApiKey: openaiApiKeyInput.value.trim() || null,
-      braveSearchApiKey: braveApiKeyInput.value.trim() || null,
       autoCheckEnabled: autoCheckInput.checked,
       confidenceThreshold: parseInt(confidenceThresholdInput.value, 10),
     };
@@ -197,4 +193,27 @@ function showNotification(message: string, type: 'success' | 'error' = 'success'
     notification.style.animation = 'slideOut 0.3s ease-out';
     setTimeout(() => notification.remove(), 300);
   }, 3000);
+}
+
+/**
+ * Update configuration status indicators based on current settings
+ */
+function updateConfigurationStatus(settings: ExtensionSettings): void {
+  const hasOpenAI = Boolean(settings.openaiApiKey && settings.openaiApiKey.trim());
+
+  // Update OpenAI status badge
+  if (hasOpenAI) {
+    openaiStatusSpan.textContent = '✓ Configured';
+    openaiStatusSpan.className = 'config-status configured';
+  } else {
+    openaiStatusSpan.textContent = '⚠ Not configured';
+    openaiStatusSpan.className = 'config-status not-configured';
+  }
+
+  // Update main status indicator
+  if (hasOpenAI) {
+    updateStatus('success', 'Extension ready - OpenAI API key configured');
+  } else {
+    updateStatus('warning', 'Configuration needed - add OpenAI API key to start');
+  }
 }

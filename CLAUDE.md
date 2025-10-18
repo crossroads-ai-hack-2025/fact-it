@@ -80,7 +80,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 **1. Content Scripts** (`src/content/`) - Run on web pages
 - Isolated from page JavaScript (separate execution context)
 - Use MutationObserver to detect DOM changes
-- Extract text from platform-specific selectors (in `src/shared/constants.ts`)
+- Load selectors from storage on init (via `GET_DOMAIN_SELECTORS` message)
+- Extract text from posts using configured selectors
 - Send messages to background worker for processing
 - Add visual indicators to page via Shadow DOM
 
@@ -88,14 +89,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 - Event-driven (Chrome may terminate when idle)
 - Orchestrates parallel fact-checking across multiple AI providers
 - Handles all API calls (OpenAI, Anthropic, Perplexity) - content scripts have restricted network access
-- Manages chrome.storage.local (API keys for all providers, cache, settings)
+- Manages chrome.storage.local (API keys, selectors, cache, settings)
+- Initializes default selectors on install/update
+- Provides CRUD operations for selector management
 - Message passing hub between content scripts and popup
 - **Critical:** Service workers can terminate - always use async/await properly and handle restarts
 
 **3. Popup** (`src/popup/`) - Extension settings UI
 - Opened by clicking extension icon
-- Manages API key configuration
-- Communicates with background worker for settings storage
+- Manages API key configuration and provider settings
+- Advanced Settings section for cache management and selector configuration
+- Allows users to add/edit/remove domain-selector mappings
+- Communicates with background worker for settings and selector storage
 
 ## TypeScript Path Aliases
 
@@ -193,24 +198,27 @@ interface ProviderSettings {
 
 ## Platform-Specific Selectors
 
-When adding new platform support:
+**Simplified selector system** - All selectors are stored in `chrome.storage.local` and can be managed via the popup UI. No expiration, no dynamic discovery.
 
-1. Add selectors to `src/shared/constants.ts` in `SELECTORS` object
-2. Create content script in `src/content/{platform}-content.ts`
-3. Add to `manifest.json`:
-```json
-{
-  "content_scripts": [{
-    "matches": ["*://platform.com/*"],
-    "js": ["content/platform-content.ts"],
-    "run_at": "document_idle"
-  }],
-  "host_permissions": ["*://platform.com/*"]
-}
-```
+**Default selectors** are defined in `selector-storage.ts` and automatically initialized on extension install/update. Supported platforms:
+- Twitter/X (twitter.com, x.com)
+- LinkedIn (linkedin.com)
+- Facebook (facebook.com)
 
-**Selector strategy:** Primary selector → Semantic fallback → Heuristic fallback
-(Social media platforms frequently change class names; use `data-testid` attributes when available)
+**Adding new platforms:**
+
+Option 1 - Via UI (recommended):
+1. Open extension popup → Advanced Settings → Domain Selectors
+2. Click "+ Add Domain"
+3. Enter domain name (e.g., `reddit.com`)
+4. Enter CSS selector for post container (e.g., `div[data-testid="post-container"]`)
+5. Enter CSS selector for text content (e.g., `div[data-testid="post-text"]`)
+
+Option 2 - Via code:
+1. Add to `DEFAULT_SELECTORS` in `src/background/selectors/selector-storage.ts`
+2. Add corresponding platform matchers in `manifest.json` (content scripts)
+
+**Selector strategy:** Use stable, data-attribute-based selectors when available (e.g., `data-testid`, `data-urn`). Social media platforms frequently change class names.
 
 ## Debugging Chrome Extensions
 

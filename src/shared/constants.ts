@@ -14,14 +14,15 @@ export const SELECTORS = {
     fallback: 'div[lang]',
   },
   linkedin: {
-    postContainer: '.feed-shared-update-v2',
-    textContent: '.feed-shared-update-v2__description',
-    urn: '[data-urn]',
+    postContainer: 'div[role="article"]',
+    textContent: 'div.feed-shared-update-v2__description',
+    author: 'a.update-components-actor__meta-link',
+    timestamp: 'span.update-components-actor__sub-description',
   },
   facebook: {
-    postContainer: 'div[role="article"]',
-    textContent: 'div[data-testid="post_message"]',
-    fallback: 'div[dir="auto"]',
+    postContainer: 'div.x1yztbdb.x1n2onr6.xh8yej3.x1ja2u2z',
+    textContent: 'div.xdj266r span[dir="auto"]',
+    fallback: 'span.x193iq5w.xeuugli',
   },
   article: {
     container: 'article, main, [itemprop="articleBody"]',

@@ -9,10 +9,12 @@ export enum MessageType {
   GET_SETTINGS = 'GET_SETTINGS',
   UPDATE_SETTINGS = 'UPDATE_SETTINGS',
   PING = 'PING',
-  DISCOVER_SELECTORS = 'DISCOVER_SELECTORS',
-  SELECTORS_DISCOVERED = 'SELECTORS_DISCOVERED',
-  VALIDATE_SELECTORS = 'VALIDATE_SELECTORS',
-  VALIDATION_RESULT = 'VALIDATION_RESULT',
+  GET_DOMAIN_SELECTORS = 'GET_DOMAIN_SELECTORS',
+  GET_ALL_SELECTORS = 'GET_ALL_SELECTORS',
+  UPDATE_DOMAIN_SELECTOR = 'UPDATE_DOMAIN_SELECTOR',
+  ADD_DOMAIN_SELECTOR = 'ADD_DOMAIN_SELECTOR',
+  REMOVE_DOMAIN_SELECTOR = 'REMOVE_DOMAIN_SELECTOR',
+  GET_SELECTOR_STATS = 'GET_SELECTOR_STATS',
   GET_CACHE_STATS = 'GET_CACHE_STATS',
   CLEAR_CACHE = 'CLEAR_CACHE',
 }
@@ -76,7 +78,7 @@ export interface UpdateSettingsMessage {
   };
 }
 
-// Selector discovery messages
+// Selector storage messages
 export interface PlatformSelectors {
   postContainer: string;
   textContent: string;
@@ -84,43 +86,47 @@ export interface PlatformSelectors {
   timestamp?: string;
 }
 
-export interface DiscoverSelectorsMessage {
-  type: MessageType.DISCOVER_SELECTORS;
+export interface GetDomainSelectorsMessage {
+  type: MessageType.GET_DOMAIN_SELECTORS;
   payload: {
     domain: string;
-    htmlSample: string;
-    forceStatic?: boolean; // Force static selector lookup (skip cache/dynamic)
   };
 }
 
-export interface SelectorsDiscoveredMessage {
-  type: MessageType.SELECTORS_DISCOVERED;
-  payload: {
-    domain: string;
-    selectors: PlatformSelectors;
-    confidence: number;
-    cached: boolean;
-    reasoning?: string;
-    source: 'cache' | 'dynamic' | 'static'; // Where the selectors came from
-  };
+export interface GetAllSelectorsMessage {
+  type: MessageType.GET_ALL_SELECTORS;
 }
 
-export interface ValidateSelectorsMessage {
-  type: MessageType.VALIDATE_SELECTORS;
+export interface UpdateDomainSelectorMessage {
+  type: MessageType.UPDATE_DOMAIN_SELECTOR;
   payload: {
     domain: string;
     selectors: PlatformSelectors;
   };
 }
 
-export interface ValidationResultMessage {
-  type: MessageType.VALIDATION_RESULT;
+export interface AddDomainSelectorMessage {
+  type: MessageType.ADD_DOMAIN_SELECTOR;
   payload: {
     domain: string;
-    valid: boolean;
-    postsFound: number;
-    textExtractionRate: number; // 0-1
+    selectors: PlatformSelectors;
   };
+}
+
+export interface RemoveDomainSelectorMessage {
+  type: MessageType.REMOVE_DOMAIN_SELECTOR;
+  payload: {
+    domain: string;
+  };
+}
+
+export interface GetSelectorStatsMessage {
+  type: MessageType.GET_SELECTOR_STATS;
+}
+
+export interface SelectorStatsMessage {
+  totalDomains: number;
+  storageEstimateMB: number;
 }
 
 // Cache management messages
@@ -147,10 +153,12 @@ export type Message =
   | PingMessage
   | GetSettingsMessage
   | UpdateSettingsMessage
-  | DiscoverSelectorsMessage
-  | SelectorsDiscoveredMessage
-  | ValidateSelectorsMessage
-  | ValidationResultMessage
+  | GetDomainSelectorsMessage
+  | GetAllSelectorsMessage
+  | UpdateDomainSelectorMessage
+  | AddDomainSelectorMessage
+  | RemoveDomainSelectorMessage
+  | GetSelectorStatsMessage
   | GetCacheStatsMessage
   | ClearCacheMessage;
 

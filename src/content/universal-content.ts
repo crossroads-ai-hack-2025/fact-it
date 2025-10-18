@@ -1,19 +1,16 @@
 /**
  * Universal Content Script for Fact-It
- * Works on ANY platform by discovering selectors dynamically
+ * Works on configured platforms using stored selectors
  */
 
 import {
   MessageType,
   PlatformSelectors,
-  DiscoverSelectorsMessage,
-  SelectorsDiscoveredMessage,
+  GetDomainSelectorsMessage,
   CheckClaimMessage,
   ClaimResultMessage,
 } from '@/shared/types';
 import { EXTENSION_NAME, OBSERVER_CONFIG } from '@/shared/constants';
-import { sampleDOM, getCurrentDomain } from '@/content/utils/dom-sampler';
-import { validateSelectors } from '@/content/utils/selector-validator';
 import { FactCheckIndicator } from '@/content/ui/indicator';
 
 console.info(`${EXTENSION_NAME}: Universal content script loaded`);
@@ -22,9 +19,8 @@ console.info(`${EXTENSION_NAME}: Universal content script loaded`);
 let currentSelectors: PlatformSelectors | null = null;
 let observer: MutationObserver | null = null;
 const processedElements = new WeakSet<Element>();
-const currentDomain = getCurrentDomain();
+const currentDomain = window.location.hostname.replace(/^www\./, '');
 const indicators = new Map<string, FactCheckIndicator>();
-let hasTriedStatic = false; // Track if we've already tried static selectors
 let mutationQueue: MutationRecord[] = []; // Queue for batching mutations
 let processingDebounceTimer: number | null = null;
 
@@ -60,133 +56,45 @@ async function init(): Promise<void> {
 }
 
 /**
- * Initialize selectors - either from cache or discovery
+ * Initialize selectors from storage
  */
 async function initializeSelectors(): Promise<void> {
   try {
-    // Request selectors from background worker
-    // Background will check cache or trigger discovery
-    const htmlSample = sampleDOM();
+    console.info(`${EXTENSION_NAME}: Requesting selectors for ${currentDomain}...`);
 
-    if (!htmlSample) {
-      console.warn(`${EXTENSION_NAME}: Could not sample DOM, page may not be supported`);
-      return;
-    }
-
-    console.info(`${EXTENSION_NAME}: Requesting selector discovery for ${currentDomain}...`);
-
-    const message: DiscoverSelectorsMessage = {
-      type: MessageType.DISCOVER_SELECTORS,
+    const message: GetDomainSelectorsMessage = {
+      type: MessageType.GET_DOMAIN_SELECTORS,
       payload: {
         domain: currentDomain,
-        htmlSample,
       },
     };
 
-    chrome.runtime.sendMessage(message, (response: SelectorsDiscoveredMessage) => {
+    chrome.runtime.sendMessage(message, (response: { selectors: PlatformSelectors | null }) => {
       if (chrome.runtime.lastError) {
         console.error(
-          `${EXTENSION_NAME}: Selector discovery failed:`,
+          `${EXTENSION_NAME}: Failed to get selectors:`,
           chrome.runtime.lastError
         );
         return;
       }
 
-      handleSelectorsDiscovered(response);
+      if (!response.selectors) {
+        console.warn(
+          `${EXTENSION_NAME}: No selectors configured for ${currentDomain}. ` +
+          `Please add selectors in extension settings.`
+        );
+        return;
+      }
+
+      console.info(`${EXTENSION_NAME}: Selectors loaded for ${currentDomain}`);
+      currentSelectors = response.selectors;
+      startObserving(response.selectors);
     });
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Error initializing selectors:`, error);
   }
 }
 
-/**
- * Handle selectors received from background worker
- */
-function handleSelectorsDiscovered(response: SelectorsDiscoveredMessage): void {
-  const { selectors, confidence, cached, source } = response.payload;
-
-  console.info(
-    `${EXTENSION_NAME}: Selectors ${cached ? 'loaded from cache' : 'discovered'} - confidence: ${confidence}% (source: ${source})`
-  );
-
-  // Validate selectors on the current page
-  const validation = validateSelectors(selectors);
-
-  if (!validation.valid) {
-    console.error(
-      `${EXTENSION_NAME}: Selector validation failed:`,
-      validation.errors
-    );
-
-    // Inform background that validation failed
-    chrome.runtime.sendMessage({
-      type: MessageType.VALIDATION_RESULT,
-      payload: {
-        domain: currentDomain,
-        valid: false,
-        postsFound: validation.postsFound,
-        textExtractionRate: validation.textExtractionRate,
-      },
-    });
-
-    // Retry with static selectors if we haven't tried them yet
-    if (source !== 'static' && !hasTriedStatic) {
-      console.info(
-        `${EXTENSION_NAME}: Retrying with static fallback selectors...`
-      );
-      hasTriedStatic = true;
-
-      // Request static selectors
-      const message: DiscoverSelectorsMessage = {
-        type: MessageType.DISCOVER_SELECTORS,
-        payload: {
-          domain: currentDomain,
-          htmlSample: '', // Not needed for static lookup
-          forceStatic: true,
-        },
-      };
-
-      chrome.runtime.sendMessage(message, (response: SelectorsDiscoveredMessage) => {
-        if (chrome.runtime.lastError) {
-          console.error(
-            `${EXTENSION_NAME}: Static selector request failed:`,
-            chrome.runtime.lastError
-          );
-          return;
-        }
-
-        handleSelectorsDiscovered(response);
-      });
-
-      return;
-    }
-
-    // All attempts failed (including static fallback)
-    console.error(
-      `${EXTENSION_NAME}: All selector discovery methods failed for ${currentDomain}. Extension will not work on this page.`
-    );
-    return;
-  }
-
-  console.info(
-    `${EXTENSION_NAME}: Selectors validated successfully! Found ${validation.postsFound} posts`
-  );
-
-  // Inform background that validation succeeded
-  chrome.runtime.sendMessage({
-    type: MessageType.VALIDATION_RESULT,
-    payload: {
-      domain: currentDomain,
-      valid: true,
-      postsFound: validation.postsFound,
-      textExtractionRate: validation.textExtractionRate,
-    },
-  });
-
-  // Store selectors and start observing
-  currentSelectors = selectors;
-  startObserving(selectors);
-}
 
 /**
  * Start observing the page for new posts

@@ -161,45 +161,58 @@
           <div id="save-feedback" class="feedback-message"></div>
         </section>
 
-        <section class="info">
-          <h3>Getting Started</h3>
-          <ol>
-            <li>Enable at least one AI provider above</li>
-            <li>Enter your API key(s) and test them</li>
-            <li>Save settings</li>
-            <li>Visit Twitter/X and start scrolling</li>
-            <li>Multiple providers will cross-verify claims in parallel</li>
-          </ol>
+        <section class="advanced-section">
+          <details class="advanced-details">
+            <summary>
+              <h3>Advanced Settings</h3>
+            </summary>
 
-          <div class="info-box">
-            <strong>Multi-Provider Mode</strong>
-            <p>
-              Enable multiple providers for cross-verification. Results from all enabled providers will be aggregated, showing consensus and provider-specific details.
-            </p>
-          </div>
-        </section>
+            <div class="advanced-content">
+              <div class="subsection">
+                <h4>Cache Management</h4>
+                <p class="help-text">Cached results avoid redundant API calls for identical posts.</p>
 
-        <section class="cache-section">
-          <h3>Cache Status</h3>
-          <p class="help-text">Cached results avoid redundant API calls for identical posts, saving time and costs.</p>
+                <div class="stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Cached Results:</span>
+                    <span class="stat-value" id="cache-entries">-</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Storage Used:</span>
+                    <span class="stat-value" id="cache-storage">-</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Average Age:</span>
+                    <span class="stat-value" id="cache-age">-</span>
+                  </div>
+                </div>
 
-          <div class="cache-stats">
-            <div class="stat-item">
-              <span class="stat-label">Cached Results:</span>
-              <span class="stat-value" id="cache-entries">-</span>
+                <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+                <div id="cache-feedback" class="feedback-message"></div>
+              </div>
+
+              <div class="subsection">
+                <h4>Domain Selectors</h4>
+                <p class="help-text">Manage CSS selectors for post detection on different platforms.</p>
+
+                <div class="stats">
+                  <div class="stat-item">
+                    <span class="stat-label">Configured Domains:</span>
+                    <span class="stat-value" id="selector-domains">-</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Storage Used:</span>
+                    <span class="stat-value" id="selector-storage">-</span>
+                  </div>
+                </div>
+
+                <div id="selector-list" class="selector-list"></div>
+
+                <button id="add-domain-btn" class="btn-secondary">+ Add Domain</button>
+                <div id="selector-feedback" class="feedback-message"></div>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Storage Used:</span>
-              <span class="stat-value" id="cache-storage">-</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Average Age:</span>
-              <span class="stat-value" id="cache-age">-</span>
-            </div>
-          </div>
-
-          <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-          <div id="cache-feedback" class="feedback-message"></div>
+          </details>
         </section>
       </main>
 

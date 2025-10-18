@@ -485,3 +485,131 @@ footer {
   color: #c62828;
   border: 1px solid #e57373;
 }
+/* Advanced Settings */
+.advanced-section {
+  margin-bottom: 24px;
+}
+
+.advanced-details {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.advanced-details summary {
+  padding: 16px;
+  background: #f8f9fa;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.advanced-details summary:hover {
+  background: #e9ecef;
+}
+
+.advanced-details summary h3 {
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+}
+
+.advanced-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-details summary::before {
+  content: '▶';
+  margin-right: 8px;
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.advanced-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced-content {
+  padding: 16px;
+}
+
+.subsection {
+  margin-bottom: 24px;
+}
+
+.subsection:last-child {
+  margin-bottom: 0;
+}
+
+.subsection h4 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 600;
+}
+
+.stats {
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Selector List */
+.selector-list {
+  margin: 16px 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.selector-item {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.selector-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.selector-item-header strong {
+  font-size: 13px;
+  color: #333;
+}
+
+.selector-item-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: #667eea;
+  color: white;
+}
+
+.btn-small:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+}
+
+.btn-small.btn-danger {
+  background: #f44336;
+}
+
+.btn-small.btn-danger:hover {
+  background: #d32f2f;
+}

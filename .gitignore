@@ -54,3 +54,5 @@ coverage/
 *.bak
 *.tmp
 .cache/
+
+tmp/

@@ -58,6 +58,13 @@ const cacheAgeSpan = document.getElementById('cache-age') as HTMLSpanElement;
 const clearCacheButton = document.getElementById('clear-cache-btn') as HTMLButtonElement;
 const cacheFeedback = document.getElementById('cache-feedback') as HTMLDivElement;
 
+// DOM elements - selector management
+const selectorDomainsSpan = document.getElementById('selector-domains') as HTMLSpanElement;
+const selectorStorageSpan = document.getElementById('selector-storage') as HTMLSpanElement;
+const selectorListDiv = document.getElementById('selector-list') as HTMLDivElement;
+const addDomainButton = document.getElementById('add-domain-btn') as HTMLButtonElement;
+const selectorFeedback = document.getElementById('selector-feedback') as HTMLDivElement;
+
 // Initialize popup
 init();
 
@@ -70,6 +77,12 @@ async function init(): Promise<void> {
 
   // Load cache stats
   await loadCacheStats();
+
+  // Load selector stats
+  await loadSelectorStats();
+
+  // Load and render selectors
+  await loadAndRenderSelectors();
 
   // Setup event listeners
   setupEventListeners();
@@ -155,6 +168,9 @@ function setupEventListeners(): void {
 
   // Clear cache button
   clearCacheButton.addEventListener('click', clearCache);
+
+  // Add domain button
+  addDomainButton.addEventListener('click', showAddDomainDialog);
 
   // Provider-specific event listeners
   for (const providerId of Object.keys(providers) as ProviderId[]) {
@@ -432,5 +448,212 @@ function showCacheFeedback(message: string, type: 'success' | 'error'): void {
   // Auto-hide after 5 seconds
   setTimeout(() => {
     cacheFeedback.style.display = 'none';
+  }, 5000);
+}
+
+/**
+ * Load selector storage statistics
+ */
+async function loadSelectorStats(): Promise<void> {
+  try {
+    chrome.runtime.sendMessage({ type: MessageType.GET_SELECTOR_STATS }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(`${EXTENSION_NAME}: Failed to load selector stats:`, chrome.runtime.lastError);
+        return;
+      }
+
+      const stats = response.stats as {
+        totalDomains: number;
+        storageEstimateMB: number;
+      };
+
+      // Update UI
+      selectorDomainsSpan.textContent = String(stats.totalDomains);
+      selectorStorageSpan.textContent = `${stats.storageEstimateMB.toFixed(2)} MB`;
+
+      console.info(`${EXTENSION_NAME}: Selector stats loaded:`, stats);
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error loading selector stats:`, error);
+  }
+}
+
+/**
+ * Load and render all selectors
+ */
+async function loadAndRenderSelectors(): Promise<void> {
+  try {
+    chrome.runtime.sendMessage({ type: MessageType.GET_ALL_SELECTORS }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error(`${EXTENSION_NAME}: Failed to load selectors:`, chrome.runtime.lastError);
+        return;
+      }
+
+      const selectors = response.selectors as Record<string, {
+        postContainer: string;
+        textContent: string;
+        author?: string;
+        timestamp?: string;
+      }>;
+
+      renderSelectorList(selectors);
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error loading selectors:`, error);
+  }
+}
+
+/**
+ * Render selector list in UI
+ */
+function renderSelectorList(selectors: Record<string, unknown>): void {
+  selectorListDiv.innerHTML = '';
+
+  const domains = Object.keys(selectors).sort();
+
+  if (domains.length === 0) {
+    selectorListDiv.innerHTML = '<p class="help-text">No domains configured yet.</p>';
+    return;
+  }
+
+  domains.forEach((domain) => {
+    const domainDiv = document.createElement('div');
+    domainDiv.className = 'selector-item';
+
+    const domainHeader = document.createElement('div');
+    domainHeader.className = 'selector-item-header';
+
+    const domainName = document.createElement('strong');
+    domainName.textContent = domain;
+
+    const buttonGroup = document.createElement('div');
+    buttonGroup.className = 'selector-item-buttons';
+
+    const editButton = document.createElement('button');
+    editButton.textContent = 'Edit';
+    editButton.className = 'btn-small';
+    editButton.onclick = () => showEditDomainDialog(domain);
+
+    const removeButton = document.createElement('button');
+    removeButton.textContent = 'Remove';
+    removeButton.className = 'btn-small btn-danger';
+    removeButton.onclick = () => removeDomain(domain);
+
+    buttonGroup.appendChild(editButton);
+    buttonGroup.appendChild(removeButton);
+
+    domainHeader.appendChild(domainName);
+    domainHeader.appendChild(buttonGroup);
+
+    domainDiv.appendChild(domainHeader);
+    selectorListDiv.appendChild(domainDiv);
+  });
+}
+
+/**
+ * Show add domain dialog
+ */
+function showAddDomainDialog(): void {
+  const domain = prompt('Enter domain name (e.g., example.com):');
+  if (!domain) return;
+
+  const postContainer = prompt('Enter CSS selector for post container:');
+  if (!postContainer) return;
+
+  const textContent = prompt('Enter CSS selector for text content:');
+  if (!textContent) return;
+
+  const selectors = {
+    postContainer,
+    textContent,
+  };
+
+  chrome.runtime.sendMessage(
+    {
+      type: MessageType.ADD_DOMAIN_SELECTOR,
+      payload: { domain, selectors },
+    },
+    (response) => {
+      if (chrome.runtime.lastError || response.error) {
+        showSelectorFeedback(`Failed to add domain: ${response.error || chrome.runtime.lastError?.message}`, 'error');
+        return;
+      }
+
+      showSelectorFeedback(`Domain ${domain} added successfully!`, 'success');
+      loadAndRenderSelectors();
+      loadSelectorStats();
+    }
+  );
+}
+
+/**
+ * Show edit domain dialog
+ */
+function showEditDomainDialog(domain: string): void {
+  const postContainer = prompt(`Edit post container selector for ${domain}:`);
+  if (!postContainer) return;
+
+  const textContent = prompt(`Edit text content selector for ${domain}:`);
+  if (!textContent) return;
+
+  const selectors = {
+    postContainer,
+    textContent,
+  };
+
+  chrome.runtime.sendMessage(
+    {
+      type: MessageType.UPDATE_DOMAIN_SELECTOR,
+      payload: { domain, selectors },
+    },
+    (response) => {
+      if (chrome.runtime.lastError || response.error) {
+        showSelectorFeedback(`Failed to update domain: ${response.error || chrome.runtime.lastError?.message}`, 'error');
+        return;
+      }
+
+      showSelectorFeedback(`Domain ${domain} updated successfully!`, 'success');
+      loadAndRenderSelectors();
+    }
+  );
+}
+
+/**
+ * Remove domain
+ */
+function removeDomain(domain: string): void {
+  if (!confirm(`Are you sure you want to remove ${domain}?`)) {
+    return;
+  }
+
+  chrome.runtime.sendMessage(
+    {
+      type: MessageType.REMOVE_DOMAIN_SELECTOR,
+      payload: { domain },
+    },
+    (response) => {
+      if (chrome.runtime.lastError || response.error) {
+        showSelectorFeedback(`Failed to remove domain: ${response.error || chrome.runtime.lastError?.message}`, 'error');
+        return;
+      }
+
+      showSelectorFeedback(`Domain ${domain} removed successfully!`, 'success');
+      loadAndRenderSelectors();
+      loadSelectorStats();
+    }
+  );
+}
+
+/**
+ * Show selector feedback message
+ */
+function showSelectorFeedback(message: string, type: 'success' | 'error'): void {
+  selectorFeedback.textContent = message;
+  selectorFeedback.className = `feedback-message ${type}`;
+  selectorFeedback.style.display = 'block';
+
+  // Auto-hide after 5 seconds
+  setTimeout(() => {
+    selectorFeedback.style.display = 'none';
   }, 5000);
 }

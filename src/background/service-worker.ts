@@ -8,25 +8,41 @@ import {
   MessageType,
   CheckClaimMessage,
   ClaimResultMessage,
-  DiscoverSelectorsMessage,
-  SelectorsDiscoveredMessage,
-  ValidationResultMessage,
+  GetDomainSelectorsMessage,
+  UpdateDomainSelectorMessage,
+  AddDomainSelectorMessage,
+  RemoveDomainSelectorMessage,
   STORAGE_KEYS,
   Verdict,
 } from '@/shared/types';
 import { EXTENSION_NAME } from '@/shared/constants';
-import { generateSelectorsWithRetry } from '@/background/selectors/selector-generator';
 import {
-  getCachedSelectors,
-  setCachedSelectors,
-  updateValidationTimestamp,
-  removeCachedSelectors,
-} from '@/background/selectors/selector-cache';
-import { getStaticSelectorsForDomain } from '@/background/selectors/static-selectors';
+  initializeSelectorStorage,
+  getAllSelectors,
+  getSelectorsForDomain,
+  updateDomainSelectors,
+  addDomainSelector,
+  removeDomainSelector as removeDomainSelectorStorage,
+  getSelectorStorageStats,
+} from '@/background/selectors/selector-storage';
 import { orchestrator } from '@/background/ai/orchestrator';
 import { getCacheStats, clearFactCheckCache } from '@/background/cache/fact-check-cache';
 
 console.info(`${EXTENSION_NAME}: Service worker loaded`);
+
+// Initialize selector storage on extension install/update
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.info(`${EXTENSION_NAME}: Extension ${details.reason}`);
+
+  if (details.reason === 'install' || details.reason === 'update') {
+    try {
+      await initializeSelectorStorage();
+      console.info(`${EXTENSION_NAME}: Selector storage initialized`);
+    } catch (error) {
+      console.error(`${EXTENSION_NAME}: Failed to initialize selector storage:`, error);
+    }
+  }
+});
 
 // Listen for messages from content scripts
 chrome.runtime.onMessage.addListener(
@@ -55,12 +71,28 @@ chrome.runtime.onMessage.addListener(
         handleUpdateSettings(message, sendResponse);
         return true; // Keep channel open for async response
 
-      case MessageType.DISCOVER_SELECTORS:
-        handleDiscoverSelectors(message as DiscoverSelectorsMessage, sendResponse);
+      case MessageType.GET_DOMAIN_SELECTORS:
+        handleGetDomainSelectors(message as GetDomainSelectorsMessage, sendResponse);
         return true; // Keep channel open for async response
 
-      case MessageType.VALIDATION_RESULT:
-        handleValidationResult(message as ValidationResultMessage, sendResponse);
+      case MessageType.GET_ALL_SELECTORS:
+        handleGetAllSelectors(sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.UPDATE_DOMAIN_SELECTOR:
+        handleUpdateDomainSelector(message as UpdateDomainSelectorMessage, sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.ADD_DOMAIN_SELECTOR:
+        handleAddDomainSelector(message as AddDomainSelectorMessage, sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.REMOVE_DOMAIN_SELECTOR:
+        handleRemoveDomainSelector(message as RemoveDomainSelectorMessage, sendResponse);
+        return true; // Keep channel open for async response
+
+      case MessageType.GET_SELECTOR_STATS:
+        handleGetSelectorStats(sendResponse);
         return true; // Keep channel open for async response
 
       case MessageType.GET_CACHE_STATS:
@@ -200,186 +232,97 @@ async function handleUpdateSettings(message: Message, sendResponse: (response: u
 }
 
 /**
- * Handle selector discovery requests
- * Implements 3-tier fallback: Cache → Dynamic Discovery → Static Fallback
+ * Handle get domain selectors request
  */
-async function handleDiscoverSelectors(
-  message: DiscoverSelectorsMessage,
-  sendResponse: (response: SelectorsDiscoveredMessage) => void
+async function handleGetDomainSelectors(
+  message: GetDomainSelectorsMessage,
+  sendResponse: (response: unknown) => void
 ): Promise<void> {
-  const { domain, htmlSample, forceStatic } = message.payload;
-
-  console.info(`${EXTENSION_NAME}: Selector discovery request for domain: ${domain} (forceStatic: ${forceStatic})`);
-
   try {
-    // TIER 3: Static fallback (if forced)
-    if (forceStatic) {
-      console.info(`${EXTENSION_NAME}: Force static requested, checking static registry...`);
-      const staticSelectors = getStaticSelectorsForDomain(domain);
-
-      if (staticSelectors) {
-        sendResponse({
-          type: MessageType.SELECTORS_DISCOVERED,
-          payload: {
-            domain,
-            selectors: staticSelectors,
-            confidence: 85, // Static selectors are reliable but may become outdated
-            cached: false,
-            source: 'static',
-            reasoning: 'Using predefined static selectors for known platform',
-          },
-        });
-        return;
-      } else {
-        console.warn(`${EXTENSION_NAME}: No static selectors available for ${domain}`);
-        // Fall through to return empty selectors
-      }
-    }
-
-    // TIER 1: Check cache first
-    if (!forceStatic) {
-      const cachedEntry = await getCachedSelectors(domain);
-
-      if (cachedEntry) {
-        console.info(`${EXTENSION_NAME}: Returning cached selectors for ${domain}`);
-
-        sendResponse({
-          type: MessageType.SELECTORS_DISCOVERED,
-          payload: {
-            domain,
-            selectors: cachedEntry.selectors,
-            confidence: cachedEntry.confidence,
-            cached: true,
-            source: 'cache',
-          },
-        });
-        return;
-      }
-    }
-
-    // TIER 2: Dynamic discovery (if HTML sample provided)
-    if (!forceStatic && htmlSample) {
-      console.info(`${EXTENSION_NAME}: No cache, discovering selectors for ${domain}...`);
-
-      try {
-        const result = await generateSelectorsWithRetry(domain, htmlSample);
-
-        // Cache immediately with temporary validation metrics
-        // Will be updated when validation result comes back
-        await setCachedSelectors(
-          domain,
-          result.selectors,
-          result.confidence,
-          {
-            postsFound: 0,
-            textExtractionRate: 0,
-          }
-        );
-
-        sendResponse({
-          type: MessageType.SELECTORS_DISCOVERED,
-          payload: {
-            domain,
-            selectors: result.selectors,
-            confidence: result.confidence,
-            cached: false,
-            source: 'dynamic',
-            reasoning: result.reasoning,
-          },
-        });
-        return;
-      } catch (dynamicError) {
-        console.error(`${EXTENSION_NAME}: Dynamic discovery failed:`, dynamicError);
-        // Fall through to Tier 3 static fallback
-      }
-    }
-
-    // TIER 3: Static fallback (last resort)
-    console.info(`${EXTENSION_NAME}: Attempting static fallback for ${domain}...`);
-    const staticSelectors = getStaticSelectorsForDomain(domain);
-
-    if (staticSelectors) {
-      console.info(`${EXTENSION_NAME}: Using static fallback selectors for ${domain}`);
-
-      sendResponse({
-        type: MessageType.SELECTORS_DISCOVERED,
-        payload: {
-          domain,
-          selectors: staticSelectors,
-          confidence: 85,
-          cached: false,
-          source: 'static',
-          reasoning: 'Dynamic discovery failed, using predefined static selectors',
-        },
-      });
-      return;
-    }
-
-    // All tiers failed - return empty selectors
-    console.error(`${EXTENSION_NAME}: All selector discovery methods failed for ${domain}`);
-    sendResponse({
-      type: MessageType.SELECTORS_DISCOVERED,
-      payload: {
-        domain,
-        selectors: {
-          postContainer: '',
-          textContent: '',
-        },
-        confidence: 0,
-        cached: false,
-        source: 'static',
-      },
-    });
+    const { domain } = message.payload;
+    const selectors = await getSelectorsForDomain(domain);
+    sendResponse({ selectors });
   } catch (error) {
-    console.error(`${EXTENSION_NAME}: Selector discovery error:`, error);
-    sendResponse({
-      type: MessageType.SELECTORS_DISCOVERED,
-      payload: {
-        domain,
-        selectors: {
-          postContainer: '',
-          textContent: '',
-        },
-        confidence: 0,
-        cached: false,
-        source: 'static',
-      },
-    });
+    console.error(`${EXTENSION_NAME}: Error getting domain selectors:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
 
 /**
- * Handle validation results from content script
+ * Handle get all selectors request
  */
-async function handleValidationResult(
-  message: ValidationResultMessage,
+async function handleGetAllSelectors(sendResponse: (response: unknown) => void): Promise<void> {
+  try {
+    const selectors = await getAllSelectors();
+    sendResponse({ selectors });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error getting all selectors:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+/**
+ * Handle update domain selector request
+ */
+async function handleUpdateDomainSelector(
+  message: UpdateDomainSelectorMessage,
   sendResponse: (response: unknown) => void
 ): Promise<void> {
-  const { domain, valid, postsFound, textExtractionRate } = message.payload;
-
-  console.info(
-    `${EXTENSION_NAME}: Validation result for ${domain}: ${valid ? 'VALID' : 'INVALID'} (${postsFound} posts, ${Math.round(textExtractionRate * 100)}% text rate)`
-  );
-
-  if (valid) {
-    // Update validation metrics in cache
-    try {
-      await updateValidationTimestamp(domain, { postsFound, textExtractionRate });
-      console.info(`${EXTENSION_NAME}: Updated validation metrics for ${domain}`);
-    } catch (error) {
-      console.error(`${EXTENSION_NAME}: Error updating validation metrics:`, error);
-    }
-  } else {
-    // Validation failed - remove from cache
-    console.warn(`${EXTENSION_NAME}: Validation failed for ${domain}, removing from cache`);
-    try {
-      await removeCachedSelectors(domain);
-    } catch (error) {
-      console.error(`${EXTENSION_NAME}: Error removing failed selectors from cache:`, error);
-    }
+  try {
+    const { domain, selectors } = message.payload;
+    await updateDomainSelectors(domain, selectors);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error updating domain selector:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
   }
+}
 
-  sendResponse({ success: true });
+/**
+ * Handle add domain selector request
+ */
+async function handleAddDomainSelector(
+  message: AddDomainSelectorMessage,
+  sendResponse: (response: unknown) => void
+): Promise<void> {
+  try {
+    const { domain, selectors } = message.payload;
+    await addDomainSelector(domain, selectors);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error adding domain selector:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+/**
+ * Handle remove domain selector request
+ */
+async function handleRemoveDomainSelector(
+  message: RemoveDomainSelectorMessage,
+  sendResponse: (response: unknown) => void
+): Promise<void> {
+  try {
+    const { domain } = message.payload;
+    await removeDomainSelectorStorage(domain);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error removing domain selector:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
+}
+
+/**
+ * Handle get selector stats request
+ */
+async function handleGetSelectorStats(sendResponse: (response: unknown) => void): Promise<void> {
+  try {
+    const stats = await getSelectorStorageStats();
+    sendResponse({ stats });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error getting selector stats:`, error);
+    sendResponse({ error: error instanceof Error ? error.message : 'Unknown error' });
+  }
 }
 
 /**

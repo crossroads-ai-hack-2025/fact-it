@@ -12,8 +12,6 @@ import {
   Stage1Sample,
   Stage2Sample,
   ModelPrediction,
-  Verdict,
-  Source,
 } from '../types/dataset-schema';
 
 // ===== Model Configuration =====
@@ -120,7 +118,6 @@ export class ModelRunner {
           system: prompt,
           prompt: inputText,
           temperature: config.temperature ?? 0.3,
-          maxTokens: config.maxTokens ?? 1024,
         });
         
         result = response.object;
@@ -133,7 +130,6 @@ export class ModelRunner {
           system: prompt,
           prompt: `Verify this claim: ${inputText}`,
           temperature: config.temperature ?? 0.5,
-          maxTokens: config.maxTokens ?? 2048,
         });
         
         result = response.object;

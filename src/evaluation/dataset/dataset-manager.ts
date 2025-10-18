@@ -15,10 +15,8 @@ import {
   validateDatasetBalance,
   Platform,
   Topic,
-  Complexity,
   Verdict,
   Difficulty,
-  Source,
 } from '../types/dataset-schema';
 
 export interface DatasetSplits<T> {

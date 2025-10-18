@@ -9,7 +9,6 @@ import {
   Stage1Sample,
   Stage2Sample,
   ModelPrediction,
-  Verdict,
 } from '../types/dataset-schema';
 
 // ===== Stage 1 Evaluator =====
@@ -137,11 +136,11 @@ export class Stage1Evaluator {
     const byPlatform: Record<string, { correct: number; total: number }> = {};
     const byTopic: Record<string, { correct: number; total: number }> = {};
     
-    matched.forEach(([pred, sample], i) => {
+    matched.forEach(([, sample], i) => {
       const correct = yPred[i] === yTrue[i];
       
       // By platform
-      const platform = sample.platform;
+      const platform = sample.platform as string;
       if (!byPlatform[platform]) {
         byPlatform[platform] = { correct: 0, total: 0 };
       }
@@ -149,7 +148,7 @@ export class Stage1Evaluator {
       if (correct) byPlatform[platform].correct++;
       
       // By topic
-      const topic = sample.metadata.topic || 'other';
+      const topic = (sample.metadata?.topic as string) || 'other';
       if (!byTopic[topic]) {
         byTopic[topic] = { correct: 0, total: 0 };
       }
@@ -404,11 +403,11 @@ export class Stage2Evaluator {
     const byDifficulty: Record<string, { correct: number; total: number }> = {};
     const byTopic: Record<string, { correct: number; total: number }> = {};
     
-    matched.forEach(([pred, sample], i) => {
+    matched.forEach(([, sample], i) => {
       const correct = yPred[i] === yTrue[i];
       
       // By difficulty
-      const difficulty = sample.difficulty;
+      const difficulty = sample.difficulty as string;
       if (!byDifficulty[difficulty]) {
         byDifficulty[difficulty] = { correct: 0, total: 0 };
       }
@@ -416,7 +415,7 @@ export class Stage2Evaluator {
       if (correct) byDifficulty[difficulty].correct++;
       
       // By topic
-      const topic = sample.topic;
+      const topic = sample.topic as string;
       if (!byTopic[topic]) {
         byTopic[topic] = { correct: 0, total: 0 };
       }

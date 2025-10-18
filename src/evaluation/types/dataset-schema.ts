@@ -59,9 +59,9 @@ export const Stage1SampleSchema = z.object({
   platform: z.nativeEnum(Platform),
   hasClaim: z.boolean(),
   claims: z.array(z.string()),
-  annotator: z.string().default(''),
-  confidence: z.number().min(0).max(1).default(1.0),
-  metadata: z.record(z.any()).default({}),
+  annotator: z.string().optional().default(''),
+  confidence: z.number().min(0).max(1).optional().default(1.0),
+  metadata: z.record(z.string(), z.any()).optional().default({}),
 });
 
 export const Stage2SampleSchema = z.object({
@@ -70,12 +70,12 @@ export const Stage2SampleSchema = z.object({
   verdict: z.nativeEnum(Verdict),
   confidence: z.number().min(0).max(1),
   sources: z.array(SourceSchema),
-  explanation: z.string().default(''),
-  reasoning: z.string().default(''),
-  difficulty: z.nativeEnum(Difficulty).default(Difficulty.MEDIUM),
-  topic: z.nativeEnum(Topic).default(Topic.OTHER),
-  annotator: z.string().default(''),
-  metadata: z.record(z.any()).default({}),
+  explanation: z.string().optional().default(''),
+  reasoning: z.string().optional().default(''),
+  difficulty: z.nativeEnum(Difficulty).optional().default(Difficulty.MEDIUM),
+  topic: z.nativeEnum(Topic).optional().default(Topic.OTHER),
+  annotator: z.string().optional().default(''),
+  metadata: z.record(z.string(), z.any()).optional().default({}),
 });
 
 export const ModelPredictionSchema = z.object({
@@ -83,10 +83,10 @@ export const ModelPredictionSchema = z.object({
   prediction: z.union([z.boolean(), z.nativeEnum(Verdict), z.null()]),
   confidence: z.number().min(0).max(1),
   explanation: z.string().optional(),
-  sources: z.array(SourceSchema).default([]),
-  latency: z.number().default(0),
-  cost: z.number().default(0),
-  metadata: z.record(z.any()).default({}),
+  sources: z.array(SourceSchema).optional().default([]),
+  latency: z.number().optional().default(0),
+  cost: z.number().optional().default(0),
+  metadata: z.record(z.string(), z.any()).optional().default({}),
 });
 
 export const EvaluationResultSchema = z.object({
@@ -96,9 +96,9 @@ export const EvaluationResultSchema = z.object({
   promptId: z.string(),
   dataset: z.string(),
   stage: z.union([z.literal(1), z.literal(2)]),
-  metrics: z.record(z.any()),
+  metrics: z.record(z.string(), z.any()),
   predictions: z.array(ModelPredictionSchema),
-  config: z.record(z.any()).default({}),
+  config: z.record(z.string(), z.any()).optional().default({}),
 });
 
 // ===== TypeScript Types =====
@@ -183,9 +183,9 @@ export function loadFromJsonl<T>(
 ): T[] {
   const fs = require('fs');
   const content = fs.readFileSync(filepath, 'utf-8');
-  const lines = content.split('\n').filter((line) => line.trim());
+  const lines = content.split('\n').filter((line: string) => line.trim());
   
-  return lines.map((line) => {
+  return lines.map((line: string) => {
     const data = JSON.parse(line);
     return validator(data);
   });

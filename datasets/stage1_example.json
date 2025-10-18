@@ -1,0 +1,45 @@
+[
+  {
+    "id": "s1_001",
+    "text": "I think remote work is more productive for most developers.",
+    "platform": "twitter",
+    "hasClaim": false,
+    "claims": [],
+    "annotator": "annotator1",
+    "confidence": 0.95,
+    "metadata": {
+      "topic": "business",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "s1_002",
+    "text": "The unemployment rate in the US fell to 3.5% in December 2023.",
+    "platform": "linkedin",
+    "hasClaim": true,
+    "claims": [
+      "The unemployment rate in the US fell to 3.5% in December 2023"
+    ],
+    "annotator": "annotator1",
+    "confidence": 1,
+    "metadata": {
+      "topic": "business",
+      "complexity": "simple"
+    }
+  },
+  {
+    "id": "s1_003",
+    "text": "Studies show that drinking coffee reduces the risk of type 2 diabetes by 30%.",
+    "platform": "article",
+    "hasClaim": true,
+    "claims": [
+      "Drinking coffee reduces the risk of type 2 diabetes by 30%"
+    ],
+    "annotator": "annotator2",
+    "confidence": 0.9,
+    "metadata": {
+      "topic": "health",
+      "complexity": "moderate"
+    }
+  }
+]

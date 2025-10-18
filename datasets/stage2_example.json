@@ -1,0 +1,42 @@
+[
+  {
+    "id": "s2_001",
+    "claim": "The unemployment rate in the US fell to 3.5% in December 2023",
+    "verdict": "true",
+    "confidence": 0.95,
+    "sources": [
+      {
+        "url": "https://www.bls.gov/news.release/empsit.nr0.htm",
+        "title": "Bureau of Labor Statistics - Employment Situation",
+        "reliabilityScore": 0.95,
+        "excerpt": "The unemployment rate edged down to 3.5 percent in December."
+      }
+    ],
+    "explanation": "The claim is accurate according to official BLS data.",
+    "reasoning": "Verified against official government statistics",
+    "difficulty": "easy",
+    "topic": "business",
+    "annotator": "annotator1",
+    "metadata": {}
+  },
+  {
+    "id": "s2_002",
+    "claim": "Drinking coffee reduces the risk of type 2 diabetes by 30%",
+    "verdict": "true",
+    "confidence": 0.85,
+    "sources": [
+      {
+        "url": "https://pubmed.ncbi.nlm.nih.gov/123456789/",
+        "title": "Coffee consumption and risk of type 2 diabetes: A meta-analysis",
+        "reliabilityScore": 0.9,
+        "excerpt": "Coffee consumption was associated with a 30% lower risk of type 2 diabetes."
+      }
+    ],
+    "explanation": "Multiple meta-analyses support this claim with similar effect sizes.",
+    "reasoning": "Strong evidence from systematic reviews",
+    "difficulty": "medium",
+    "topic": "health",
+    "annotator": "annotator2",
+    "metadata": {}
+  }
+]

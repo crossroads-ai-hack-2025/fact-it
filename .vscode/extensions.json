@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "christian-kohler.path-intellisense",
+    "usernamehw.errorlens",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

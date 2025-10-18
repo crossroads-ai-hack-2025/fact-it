@@ -1,0 +1,43 @@
+{
+  // Editor settings
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.rulers": [100],
+
+  // TypeScript settings
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  // ESLint settings
+  "eslint.validate": ["javascript", "typescript"],
+  "eslint.format.enable": true,
+
+  // File associations
+  "files.associations": {
+    "*.css": "css",
+    "*.ts": "typescript"
+  },
+
+  // Auto-save
+  "files.autoSave": "onFocusChange",
+
+  // Search exclusions
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true
+  },
+
+  // File exclusions from explorer
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/dist": true
+  }
+}

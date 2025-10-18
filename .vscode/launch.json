@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Chrome Extension",
+      "type": "chrome",
+      "request": "launch",
+      "url": "https://twitter.com",
+      "webRoot": "${workspaceFolder}/src",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${webRoot}/*",
+        "webpack:///src/*": "${webRoot}/*",
+        "webpack:///*": "*",
+        "webpack:///./~/*": "${webRoot}/node_modules/*"
+      },
+      "userDataDir": "${workspaceFolder}/.vscode/chrome-debug-profile",
+      "runtimeArgs": [
+        "--disable-extensions-except=${workspaceFolder}/dist",
+        "--load-extension=${workspaceFolder}/dist"
+      ],
+      "preLaunchTask": "npm: build"
+    },
+    {
+      "name": "Attach to Chrome",
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "webRoot": "${workspaceFolder}/src",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${webRoot}/*",
+        "webpack:///src/*": "${webRoot}/*"
+      }
+    }
+  ]
+}

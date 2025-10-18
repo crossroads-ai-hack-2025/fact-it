@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fact-It Settings</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Fact-It</h1>
+        <p class="subtitle">Real-time fact-checking extension</p>
+      </header>
+
+      <main>
+        <section class="status">
+          <div class="status-indicator" id="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text" id="status-text">Checking status...</span>
+          </div>
+        </section>
+
+        <section class="settings">
+          <h2>Settings</h2>
+
+          <div class="form-group">
+            <label for="openai-api-key">
+              OpenAI API Key
+              <span class="optional">(required for fact-checking)</span>
+            </label>
+            <input
+              type="password"
+              id="openai-api-key"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+            <small class="help-text">
+              Get your API key from
+              <a href="https://platform.openai.com/api-keys" target="_blank">
+                platform.openai.com
+              </a>
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="brave-api-key">
+              Brave Search API Key
+              <span class="optional">(required for verification)</span>
+            </label>
+            <input
+              type="password"
+              id="brave-api-key"
+              placeholder="BSA..."
+              autocomplete="off"
+            />
+            <small class="help-text">
+              Get your API key from
+              <a href="https://brave.com/search/api/" target="_blank">
+                brave.com/search/api
+              </a>
+            </small>
+          </div>
+
+          <div class="form-group checkbox">
+            <label>
+              <input type="checkbox" id="auto-check" checked />
+              <span>Automatically check posts while scrolling</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="confidence-threshold">
+              Confidence Threshold: <span id="threshold-value">70</span>%
+            </label>
+            <input
+              type="range"
+              id="confidence-threshold"
+              min="0"
+              max="100"
+              value="70"
+              step="5"
+            />
+            <small class="help-text">
+              Only show results with confidence above this threshold
+            </small>
+          </div>
+
+          <button id="save-settings" class="btn-primary">Save Settings</button>
+        </section>
+
+        <section class="info">
+          <h3>Getting Started</h3>
+          <ol>
+            <li>Get API keys from OpenAI and Brave Search (links above)</li>
+            <li>Enter your API keys and save settings</li>
+            <li>Visit Twitter/X and start scrolling</li>
+            <li>The extension will automatically check posts for factual claims</li>
+          </ol>
+
+          <div class="info-box">
+            <strong>Development Mode</strong>
+            <p>
+              You're running Fact-It v0.1.0 in development. Look for the 👁️ emoji
+              on tweets to confirm detection is working.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <p>Fact-It v0.1.0 | Open Source</p>
+      </footer>
+    </div>
+
+    <script type="module" src="popup.ts"></script>
+  </body>
+</html>

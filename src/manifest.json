@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "Fact-It",
+  "version": "0.1.0",
+  "description": "Real-time fact-checking for social media and web articles",
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "*://twitter.com/*",
+    "*://x.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://twitter.com/*",
+        "*://x.com/*"
+      ],
+      "js": [
+        "src/content/twitter-content.ts"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "public/icons/icon16.png",
+      "48": "public/icons/icon48.png",
+      "128": "public/icons/icon128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["public/icons/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

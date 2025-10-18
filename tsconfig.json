@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    // Target modern browsers (Chrome extension)
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    // Strict type checking (recommended)
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "skipLibCheck": true,
+
+    // Module resolution
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+
+    // Output
+    "noEmit": true,
+    "sourceMap": true,
+
+    // Path aliases
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    // Chrome extension types
+    "types": ["chrome", "node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,6 +1,6 @@
 /**
  * Anthropic provider implementation
- * Uses Claude 3.5 Haiku for claim detection and Claude 3.5 Sonnet with web search for verification
+ * Uses Claude Haiku 4.5 for claim detection and Claude Sonnet 4.5 with web search for verification
  */
 
 import { generateObject, generateText } from 'ai';
@@ -24,10 +24,15 @@ export class AnthropicProvider implements AIProvider {
    */
   async testApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const anthropic = createAnthropic({ apiKey });
+      const anthropic = createAnthropic({
+        apiKey,
+        headers: {
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+      });
 
       await generateObject({
-        model: anthropic('claude-3-5-haiku-20241022'),
+        model: anthropic('claude-haiku-4-5-20251001'),
         schema: z.object({ test: z.string() }),
         prompt: 'test',
       });
@@ -42,7 +47,7 @@ export class AnthropicProvider implements AIProvider {
   }
 
   /**
-   * Stage 1: Detect factual claims in text using Claude 3.5 Haiku
+   * Stage 1: Detect factual claims in text using Claude Haiku 4.5
    * Fast classification to filter out opinions, questions, and subjective statements
    *
    * @param text - Text to analyze for factual claims
@@ -86,13 +91,18 @@ Be conservative: only identify claims that can be fact-checked against reliable 
 "${text}"`;
 
     console.info(
-      `${EXTENSION_NAME}: [Anthropic] Stage 1 - Detecting claims (model: claude-3-5-haiku)`
+      `${EXTENSION_NAME}: [Anthropic] Stage 1 - Detecting claims (model: claude-haiku-4-5)`
     );
 
-    const anthropic = createAnthropic({ apiKey });
+    const anthropic = createAnthropic({
+      apiKey,
+      headers: {
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+    });
 
     const { object, usage } = await generateObject({
-      model: anthropic('claude-3-5-haiku-20241022'),
+      model: anthropic('claude-haiku-4-5-20251001'),
       schema: ClaimDetectionSchema,
       system: systemPrompt,
       prompt: userPrompt,
@@ -113,7 +123,7 @@ Be conservative: only identify claims that can be fact-checked against reliable 
   }
 
   /**
-   * Stage 2: Verify factual claim using Claude 3.5 Sonnet with web search
+   * Stage 2: Verify factual claim using Claude Sonnet 4.5 with web search
    * Uses Anthropic's Brave Search integration to find and synthesize evidence
    *
    * @param claim - Factual claim to verify
@@ -122,7 +132,7 @@ Be conservative: only identify claims that can be fact-checked against reliable 
    */
   async verifyClaim(claim: string, apiKey: string): Promise<VerificationVerdictResult> {
     console.info(
-      `${EXTENSION_NAME}: [Anthropic] Stage 2 - Verifying claim (model: claude-3-5-sonnet)`
+      `${EXTENSION_NAME}: [Anthropic] Stage 2 - Verifying claim (model: claude-sonnet-4-5)`
     );
     console.info(`${EXTENSION_NAME}: [Anthropic] Claim: "${claim}"`);
 
@@ -154,13 +164,18 @@ IMPORTANT GUIDELINES:
 - Prefer "unknown" for claims that cannot be verified with available evidence
 - Always use web search to find current, authoritative information`;
 
-    const anthropic = createAnthropic({ apiKey });
+    const anthropic = createAnthropic({
+      apiKey,
+      headers: {
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+    });
 
     console.info(`${EXTENSION_NAME}: [Anthropic] Using Brave Search via web search tool...`);
 
     // Use generateText with Anthropic's web search tool
     const result = await generateText({
-      model: anthropic('claude-3-5-sonnet-20241022'),
+      model: anthropic('claude-sonnet-4-5-20250929'),
       system: systemPrompt,
       prompt: `Verify this claim and provide a detailed analysis: "${claim}"
 

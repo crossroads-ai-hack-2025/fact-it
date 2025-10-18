@@ -6,6 +6,7 @@ pnpm-lock.yaml
 
 # Build output
 dist/
+.vite/
 build/
 *.log
 
@@ -15,12 +16,32 @@ build/
 .env.*.local
 
 # IDE
+.vscode/settings.json
 .vscode/chrome-debug-profile/
 .idea/
 *.swp
 *.swo
 *~
 .DS_Store
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Evaluation datasets (optional - uncomment if you don't want to commit datasets)
+# datasets/
+
+# Evaluation results
+results/
+*.csv
+*.jsonl
+
+# Old Python evaluation framework
+eval/
+eval-ts/file/
 
 # TypeScript
 *.tsbuildinfo

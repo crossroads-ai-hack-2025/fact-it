@@ -35,19 +35,6 @@ export const OBSERVER_CONFIG = {
   minTextLength: 50, // Minimum text length to consider for checking
 } as const;
 
-// API configuration
-export const API_CONFIG = {
-  openai: {
-    baseUrl: 'https://api.openai.com/v1',
-    model: {
-      stage1: 'gpt-4o-mini', // Claim detection
-      stage2: 'gpt-4o', // Verification
-    },
-  },
-  braveSearch: {
-    baseUrl: 'https://api.search.brave.com/res/v1/web/search',
-  },
-} as const;
 
 // UI configuration
 export const UI_CONFIG = {

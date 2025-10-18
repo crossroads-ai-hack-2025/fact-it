@@ -22,6 +22,7 @@ import {
   updateValidationTimestamp,
   removeCachedSelectors,
 } from '@/background/selectors/selector-cache';
+import { getStaticSelectorsForDomain } from '@/background/selectors/static-selectors';
 import { aiClient } from '@/background/ai';
 
 console.info(`${EXTENSION_NAME}: Service worker loaded`);
@@ -239,65 +240,122 @@ async function handleUpdateSettings(message: Message, sendResponse: (response: u
 
 /**
  * Handle selector discovery requests
+ * Implements 3-tier fallback: Cache → Dynamic Discovery → Static Fallback
  */
 async function handleDiscoverSelectors(
   message: DiscoverSelectorsMessage,
   sendResponse: (response: SelectorsDiscoveredMessage) => void
 ): Promise<void> {
-  const { domain, htmlSample } = message.payload;
+  const { domain, htmlSample, forceStatic } = message.payload;
 
-  console.info(`${EXTENSION_NAME}: Selector discovery request for domain: ${domain}`);
+  console.info(`${EXTENSION_NAME}: Selector discovery request for domain: ${domain} (forceStatic: ${forceStatic})`);
 
   try {
-    // Check cache first
-    const cachedEntry = await getCachedSelectors(domain);
+    // TIER 3: Static fallback (if forced)
+    if (forceStatic) {
+      console.info(`${EXTENSION_NAME}: Force static requested, checking static registry...`);
+      const staticSelectors = getStaticSelectorsForDomain(domain);
 
-    if (cachedEntry) {
-      // Return cached selectors
-      console.info(`${EXTENSION_NAME}: Returning cached selectors for ${domain}`);
+      if (staticSelectors) {
+        sendResponse({
+          type: MessageType.SELECTORS_DISCOVERED,
+          payload: {
+            domain,
+            selectors: staticSelectors,
+            confidence: 85, // Static selectors are reliable but may become outdated
+            cached: false,
+            source: 'static',
+            reasoning: 'Using predefined static selectors for known platform',
+          },
+        });
+        return;
+      } else {
+        console.warn(`${EXTENSION_NAME}: No static selectors available for ${domain}`);
+        // Fall through to return empty selectors
+      }
+    }
+
+    // TIER 1: Check cache first
+    if (!forceStatic) {
+      const cachedEntry = await getCachedSelectors(domain);
+
+      if (cachedEntry) {
+        console.info(`${EXTENSION_NAME}: Returning cached selectors for ${domain}`);
+
+        sendResponse({
+          type: MessageType.SELECTORS_DISCOVERED,
+          payload: {
+            domain,
+            selectors: cachedEntry.selectors,
+            confidence: cachedEntry.confidence,
+            cached: true,
+            source: 'cache',
+          },
+        });
+        return;
+      }
+    }
+
+    // TIER 2: Dynamic discovery (if HTML sample provided)
+    if (!forceStatic && htmlSample) {
+      console.info(`${EXTENSION_NAME}: No cache, discovering selectors for ${domain}...`);
+
+      try {
+        const result = await generateSelectorsWithRetry(domain, htmlSample);
+
+        // Cache immediately with temporary validation metrics
+        // Will be updated when validation result comes back
+        await setCachedSelectors(
+          domain,
+          result.selectors,
+          result.confidence,
+          {
+            postsFound: 0,
+            textExtractionRate: 0,
+          }
+        );
+
+        sendResponse({
+          type: MessageType.SELECTORS_DISCOVERED,
+          payload: {
+            domain,
+            selectors: result.selectors,
+            confidence: result.confidence,
+            cached: false,
+            source: 'dynamic',
+            reasoning: result.reasoning,
+          },
+        });
+        return;
+      } catch (dynamicError) {
+        console.error(`${EXTENSION_NAME}: Dynamic discovery failed:`, dynamicError);
+        // Fall through to Tier 3 static fallback
+      }
+    }
+
+    // TIER 3: Static fallback (last resort)
+    console.info(`${EXTENSION_NAME}: Attempting static fallback for ${domain}...`);
+    const staticSelectors = getStaticSelectorsForDomain(domain);
+
+    if (staticSelectors) {
+      console.info(`${EXTENSION_NAME}: Using static fallback selectors for ${domain}`);
 
       sendResponse({
         type: MessageType.SELECTORS_DISCOVERED,
         payload: {
           domain,
-          selectors: cachedEntry.selectors,
-          confidence: cachedEntry.confidence,
-          cached: true,
+          selectors: staticSelectors,
+          confidence: 85,
+          cached: false,
+          source: 'static',
+          reasoning: 'Dynamic discovery failed, using predefined static selectors',
         },
       });
       return;
     }
 
-    // No cache, discover selectors
-    console.info(`${EXTENSION_NAME}: No cache, discovering selectors for ${domain}...`);
-
-    const result = await generateSelectorsWithRetry(domain, htmlSample);
-
-    // Cache immediately with temporary validation metrics
-    // Will be updated when validation result comes back
-    await setCachedSelectors(
-      domain,
-      result.selectors,
-      result.confidence,
-      {
-        postsFound: 0,
-        textExtractionRate: 0,
-      }
-    );
-
-    // Return discovered selectors
-    sendResponse({
-      type: MessageType.SELECTORS_DISCOVERED,
-      payload: {
-        domain,
-        selectors: result.selectors,
-        confidence: result.confidence,
-        cached: false,
-        reasoning: result.reasoning,
-      },
-    });
-  } catch (error) {
-    console.error(`${EXTENSION_NAME}: Selector discovery failed:`, error);
+    // All tiers failed - return empty selectors
+    console.error(`${EXTENSION_NAME}: All selector discovery methods failed for ${domain}`);
     sendResponse({
       type: MessageType.SELECTORS_DISCOVERED,
       payload: {
@@ -308,6 +366,22 @@ async function handleDiscoverSelectors(
         },
         confidence: 0,
         cached: false,
+        source: 'static',
+      },
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Selector discovery error:`, error);
+    sendResponse({
+      type: MessageType.SELECTORS_DISCOVERED,
+      payload: {
+        domain,
+        selectors: {
+          postContainer: '',
+          textContent: '',
+        },
+        confidence: 0,
+        cached: false,
+        source: 'static',
       },
     });
   }

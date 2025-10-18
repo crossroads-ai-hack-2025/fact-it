@@ -24,6 +24,7 @@ let observer: MutationObserver | null = null;
 const processedElements = new WeakSet<Element>();
 const currentDomain = getCurrentDomain();
 const indicators = new Map<string, FactCheckIndicator>();
+let hasTriedStatic = false; // Track if we've already tried static selectors
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -100,10 +101,10 @@ async function initializeSelectors(): Promise<void> {
  * Handle selectors received from background worker
  */
 function handleSelectorsDiscovered(response: SelectorsDiscoveredMessage): void {
-  const { selectors, confidence, cached } = response.payload;
+  const { selectors, confidence, cached, source } = response.payload;
 
   console.info(
-    `${EXTENSION_NAME}: Selectors ${cached ? 'loaded from cache' : 'discovered'} - confidence: ${confidence}%`
+    `${EXTENSION_NAME}: Selectors ${cached ? 'loaded from cache' : 'discovered'} - confidence: ${confidence}% (source: ${source})`
   );
 
   // Validate selectors on the current page
@@ -126,6 +127,42 @@ function handleSelectorsDiscovered(response: SelectorsDiscoveredMessage): void {
       },
     });
 
+    // Retry with static selectors if we haven't tried them yet
+    if (source !== 'static' && !hasTriedStatic) {
+      console.info(
+        `${EXTENSION_NAME}: Retrying with static fallback selectors...`
+      );
+      hasTriedStatic = true;
+
+      // Request static selectors
+      const message: DiscoverSelectorsMessage = {
+        type: MessageType.DISCOVER_SELECTORS,
+        payload: {
+          domain: currentDomain,
+          htmlSample: '', // Not needed for static lookup
+          forceStatic: true,
+        },
+      };
+
+      chrome.runtime.sendMessage(message, (response: SelectorsDiscoveredMessage) => {
+        if (chrome.runtime.lastError) {
+          console.error(
+            `${EXTENSION_NAME}: Static selector request failed:`,
+            chrome.runtime.lastError
+          );
+          return;
+        }
+
+        handleSelectorsDiscovered(response);
+      });
+
+      return;
+    }
+
+    // All attempts failed (including static fallback)
+    console.error(
+      `${EXTENSION_NAME}: All selector discovery methods failed for ${currentDomain}. Extension will not work on this page.`
+    );
     return;
   }
 

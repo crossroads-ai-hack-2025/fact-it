@@ -72,6 +72,7 @@ export interface DiscoverSelectorsMessage {
   payload: {
     domain: string;
     htmlSample: string;
+    forceStatic?: boolean; // Force static selector lookup (skip cache/dynamic)
   };
 }
 
@@ -83,6 +84,7 @@ export interface SelectorsDiscoveredMessage {
     confidence: number;
     cached: boolean;
     reasoning?: string;
+    source: 'cache' | 'dynamic' | 'static'; // Where the selectors came from
   };
 }
 

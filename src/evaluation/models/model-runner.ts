@@ -4,10 +4,9 @@
  * Supports OpenAI, Anthropic, Google, and other providers through AI SDK.
  */
 
-import { generateObject, generateText } from 'ai';
+import { generateObject } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import {
   Stage1Sample,
@@ -78,16 +77,13 @@ const Stage2ResponseSchema = z.object({
 export class ModelRunner {
   private openaiKey: string | null = null;
   private anthropicKey: string | null = null;
-  private googleKey: string | null = null;
   
   constructor(options: {
     openaiKey?: string;
     anthropicKey?: string;
-    googleKey?: string;
   } = {}) {
     this.openaiKey = options.openaiKey || process.env.OPENAI_API_KEY || null;
     this.anthropicKey = options.anthropicKey || process.env.ANTHROPIC_API_KEY || null;
-    this.googleKey = options.googleKey || process.env.GOOGLE_API_KEY || null;
   }
   
   /**
@@ -245,13 +241,8 @@ export class ModelRunner {
         throw new Error('Anthropic API key not provided');
       }
       return createAnthropic({ apiKey: this.anthropicKey });
-    } else if (modelLower.includes('gemini')) {
-      if (!this.googleKey) {
-        throw new Error('Google API key not provided');
-      }
-      return createGoogleGenerativeAI({ apiKey: this.googleKey });
     } else {
-      throw new Error(`Unknown model provider for: ${model}`);
+      throw new Error(`Unknown model provider for: ${model}. Supported: OpenAI (gpt-*, o1-*), Anthropic (claude-*)`);
     }
   }
   
@@ -312,11 +303,9 @@ export class ModelRunner {
 export function checkApiKeys(): {
   openai: boolean;
   anthropic: boolean;
-  google: boolean;
 } {
   return {
     openai: !!process.env.OPENAI_API_KEY,
     anthropic: !!process.env.ANTHROPIC_API_KEY,
-    google: !!process.env.GOOGLE_API_KEY,
   };
 }

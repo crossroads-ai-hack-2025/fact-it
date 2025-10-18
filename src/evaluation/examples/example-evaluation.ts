@@ -20,7 +20,6 @@ async function main() {
   console.log('\nAPI Keys Status:');
   console.log(`  OpenAI:    ${keys.openai ? '✓' : '✗'}`);
   console.log(`  Anthropic: ${keys.anthropic ? '✓' : '✗'}`);
-  console.log(`  Google:    ${keys.google ? '✓' : '✗'}`);
   
   if (!keys.openai) {
     console.log('\n⚠️  OPENAI_API_KEY not set. Set it with:');

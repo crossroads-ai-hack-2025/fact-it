@@ -42,11 +42,13 @@ npm run eval:example
 ```
 
 This will:
+
 - Create example datasets automatically (in `datasets/` folder)
 - Run Stage 1 evaluation with GPT-4o-mini (~$0.0001 cost)
 - Show comprehensive metrics and sample predictions
 
 To also run Stage 2 (costs ~$0.02):
+
 ```bash
 RUN_STAGE2=true npm run eval:example
 ```
@@ -77,23 +79,22 @@ for (const model of models) {
 ## Supported Models
 
 ### OpenAI
+
 - `gpt-4o-mini` - Fast, cost-effective
 - `gpt-4o` - High quality
 - `o1-preview` - Advanced reasoning
 - `o1-mini` - Reasoning, cost-effective
 
 ### Anthropic (requires `ANTHROPIC_API_KEY`)
+
 - `claude-3-5-sonnet-20241022` - Latest Sonnet
 - `claude-3-opus-20240229` - Highest capability
 - `claude-3-haiku-20240307` - Fast and cheap
 
-### Google (requires `GOOGLE_API_KEY`)
-- `gemini-1.5-flash` - Fast and cheap
-- `gemini-1.5-pro` - High quality
-
 ## Metrics
 
 ### Stage 1 (Claim Detection)
+
 - Precision, Recall, F1 Score
 - False Positive Rate
 - Latency percentiles (P90, P95, P99)
@@ -101,6 +102,7 @@ for (const model of models) {
 - Error analysis by platform/topic
 
 ### Stage 2 (Verification)
+
 - Multi-class accuracy
 - Critical error tracking (TRUE↔FALSE swaps)
 - Confidence calibration (ECE)

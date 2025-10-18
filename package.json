@@ -13,8 +13,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,html}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,html}\"",
     "type-check": "tsc --noEmit",
-    "eval:example": "tsx src/evaluation/examples/example-evaluation.ts",
-    "eval:create-datasets": "tsx src/evaluation/examples/create-datasets.ts"
+    "eval:example": "tsx src/evaluation/examples/example-evaluation.ts"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.2.0",

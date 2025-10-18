@@ -23,7 +23,7 @@ import {
   removeCachedSelectors,
 } from '@/background/selectors/selector-cache';
 import { getStaticSelectorsForDomain } from '@/background/selectors/static-selectors';
-import { aiClient } from '@/background/ai';
+import { orchestrator } from '@/background/ai/orchestrator';
 
 console.info(`${EXTENSION_NAME}: Service worker loaded`);
 
@@ -79,9 +79,10 @@ function handlePing(sendResponse: (response: unknown) => void): void {
 
 /**
  * Handle claim checking requests
- * Two-stage AI verification pipeline:
- * Stage 1: GPT-4o-mini detects if text contains factual claims
- * Stage 2: GPT-4o verifies claims with web search (if claims found)
+ * Multi-provider verification pipeline:
+ * - Runs parallel claim detection across all enabled providers
+ * - Verifies claims in parallel using provider-specific web search
+ * - Aggregates results from multiple sources
  */
 async function handleCheckClaim(
   message: CheckClaimMessage,
@@ -95,87 +96,34 @@ async function handleCheckClaim(
       text.substring(0, 100) + '...'
     );
 
-    // STAGE 1: Detect if text contains factual claims
-    console.info(`${EXTENSION_NAME}: Starting Stage 1 - Claim Detection...`);
+    // Use orchestrator to check claim across all enabled providers
+    const result = await orchestrator.checkClaim(text);
 
-    let stage1Result;
-    try {
-      stage1Result = await aiClient.detectClaims(text);
-    } catch (error) {
-      console.error(`${EXTENSION_NAME}: Stage 1 failed:`, error);
-      throw new Error(
-        `Claim detection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-
-    // If no claims detected, return no_claim verdict
-    if (!stage1Result.hasClaim || stage1Result.claims.length === 0) {
-      console.info(`${EXTENSION_NAME}: Stage 1 - No claims detected`);
-      console.info(`${EXTENSION_NAME}: Reasoning: ${stage1Result.reasoning}`);
-
-      sendResponse({
-        type: MessageType.CLAIM_RESULT,
-        payload: {
-          elementId,
-          verdict: 'no_claim',
-          confidence: 0,
-          explanation: stage1Result.reasoning,
-          sources: [],
-        },
-      });
-      return;
-    }
-
-    // Claims found - proceed to Stage 2
     console.info(
-      `${EXTENSION_NAME}: Stage 1 - Claims detected: ${stage1Result.claims.length}`
-    );
-    console.info(
-      `${EXTENSION_NAME}: Claims: ${stage1Result.claims.join('; ')}`
+      `${EXTENSION_NAME}: Fact-check complete - Verdict: ${result.verdict} (${result.confidence}% confidence, consensus: ${result.consensus.agreeing}/${result.consensus.total})`
     );
 
-    // STAGE 2: Verify the first claim using web search
-    // (In future: could verify multiple claims, for now just verify the first one)
-    const claimToVerify = stage1Result.claims[0];
-    console.info(`${EXTENSION_NAME}: Starting Stage 2 - Verification...`);
-    console.info(`${EXTENSION_NAME}: Verifying claim: "${claimToVerify}"`);
-
-    let stage2Result;
-    try {
-      stage2Result = await aiClient.verifyClaim(claimToVerify);
-    } catch (error) {
-      console.error(`${EXTENSION_NAME}: Stage 2 failed:`, error);
-      // Return unknown verdict on verification failure
-      sendResponse({
-        type: MessageType.CLAIM_RESULT,
-        payload: {
-          elementId,
-          verdict: 'unknown',
-          confidence: 0,
-          explanation: `Verification failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your API keys in settings.`,
-          sources: [],
-        },
-      });
-      return;
-    }
-
-    // Return the verification result
-    console.info(
-      `${EXTENSION_NAME}: Stage 2 complete - Verdict: ${stage2Result.verdict} (${stage2Result.confidence}% confidence)`
-    );
-
+    // Map aggregated result to ClaimResultMessage
     sendResponse({
       type: MessageType.CLAIM_RESULT,
       payload: {
         elementId,
-        verdict: stage2Result.verdict as Verdict,
-        confidence: stage2Result.confidence,
-        explanation: stage2Result.explanation,
-        sources: stage2Result.sources,
+        verdict: result.verdict as Verdict,
+        confidence: result.confidence,
+        explanation: result.explanation,
+        sources: result.sources,
+        providerResults: result.providerResults.map((pr) => ({
+          providerId: pr.providerId,
+          providerName: pr.providerName,
+          verdict: pr.verdict,
+          confidence: pr.confidence,
+          explanation: pr.explanation,
+        })),
+        consensus: result.consensus,
       },
     });
   } catch (error) {
-    console.error(`${EXTENSION_NAME}: Error in claim checking pipeline:`, error);
+    console.error(`${EXTENSION_NAME}: Error in fact-checking pipeline:`, error);
 
     // Send error response
     sendResponse({
@@ -184,7 +132,7 @@ async function handleCheckClaim(
         elementId: message.payload.elementId,
         verdict: 'unknown',
         confidence: 0,
-        explanation: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        explanation: `Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please check your provider API keys in settings.`,
         sources: [],
       },
     });
@@ -198,7 +146,11 @@ async function handleGetSettings(sendResponse: (response: unknown) => void): Pro
   try {
     const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const settings = result[STORAGE_KEYS.SETTINGS] || {
-      openaiApiKey: null,
+      providers: {
+        openai: { enabled: false, apiKey: null },
+        anthropic: { enabled: false, apiKey: null },
+        perplexity: { enabled: false, apiKey: null },
+      },
       autoCheckEnabled: true,
       confidenceThreshold: 70,
     };

@@ -38,7 +38,18 @@ export interface ClaimResultMessage {
     verdict: Verdict;
     confidence: number; // 0-100
     explanation: string;
-    sources: Array<{ title: string; url: string }>;
+    sources: Array<{ title: string; url: string; provider?: string }>;
+    providerResults?: Array<{
+      providerId: string;
+      providerName: string;
+      verdict: 'true' | 'false' | 'unknown';
+      confidence: number;
+      explanation: string;
+    }>;
+    consensus?: {
+      total: number;
+      agreeing: number;
+    };
   };
 }
 
@@ -53,7 +64,11 @@ export interface GetSettingsMessage {
 export interface UpdateSettingsMessage {
   type: MessageType.UPDATE_SETTINGS;
   payload: {
-    openaiApiKey?: string;
+    providers?: {
+      openai?: ProviderSettings;
+      anthropic?: ProviderSettings;
+      perplexity?: ProviderSettings;
+    };
     autoCheckEnabled?: boolean;
     confidenceThreshold?: number;
   };
@@ -118,9 +133,19 @@ export type Message =
   | ValidateSelectorsMessage
   | ValidationResultMessage;
 
+// Provider settings interface
+export interface ProviderSettings {
+  enabled: boolean;
+  apiKey: string | null;
+}
+
 // Settings interface
 export interface ExtensionSettings {
-  openaiApiKey: string | null;
+  providers: {
+    openai: ProviderSettings;
+    anthropic: ProviderSettings;
+    perplexity: ProviderSettings;
+  };
   autoCheckEnabled: boolean;
   confidenceThreshold: number; // 0-100, only show results above this confidence
 }

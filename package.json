@@ -38,7 +38,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.33",
     "@ai-sdk/openai": "^2.0.52",
+    "@ai-sdk/perplexity": "^2.0.13",
     "ai": "^5.0.76",
     "zod": "^4.1.12"
   }

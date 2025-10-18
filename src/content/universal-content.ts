@@ -25,6 +25,8 @@ const processedElements = new WeakSet<Element>();
 const currentDomain = getCurrentDomain();
 const indicators = new Map<string, FactCheckIndicator>();
 let hasTriedStatic = false; // Track if we've already tried static selectors
+let mutationQueue: MutationRecord[] = []; // Queue for batching mutations
+let processingDebounceTimer: number | null = null;
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -213,13 +215,49 @@ function startObserving(selectors: PlatformSelectors): void {
   observer.observe(feedContainer, {
     childList: true,
     subtree: true,
-    attributes: false,
+    attributes: true, // Watch for attribute changes (text might be loaded via attributes)
+    attributeFilter: ['class', 'data-urn'], // Only watch relevant attributes
   });
 
   // Process existing posts
   processExistingPosts(selectors);
 
   console.info(`${EXTENSION_NAME}: Observer started successfully`);
+
+  // Set up periodic post scanner as a safety net (every 2 seconds)
+  // This catches posts that might have been missed during rapid scrolling
+  setInterval(() => {
+    scanForMissedPosts(selectors);
+  }, 2000);
+}
+
+/**
+ * Periodic scanner to catch posts that may have been missed
+ * Acts as a safety net for posts added during rapid scrolling
+ */
+function scanForMissedPosts(selectors: PlatformSelectors): void {
+  try {
+    const allPosts = document.querySelectorAll(selectors.postContainer);
+    const unprocessedPosts: Element[] = [];
+
+    allPosts.forEach((post) => {
+      if (!processedElements.has(post)) {
+        unprocessedPosts.push(post);
+      }
+    });
+
+    if (unprocessedPosts.length > 0) {
+      console.info(
+        `${EXTENSION_NAME}: 🔧 Safety net: Found ${unprocessedPosts.length} unprocessed posts`
+      );
+
+      unprocessedPosts.forEach((post, index) => {
+        processPost(post, selectors, index);
+      });
+    }
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error in periodic post scanner:`, error);
+  }
 }
 
 /**
@@ -228,13 +266,24 @@ function startObserving(selectors: PlatformSelectors): void {
 function processExistingPosts(selectors: PlatformSelectors): void {
   try {
     const posts = document.querySelectorAll(selectors.postContainer);
-    console.info(`${EXTENSION_NAME}: Processing ${posts.length} existing posts`);
+    console.info(`${EXTENSION_NAME}: 🔎 Found ${posts.length} existing posts on page load`);
 
-    posts.forEach((post) => {
+    let processedCount = 0;
+    let skippedCount = 0;
+
+    posts.forEach((post, index) => {
       if (!processedElements.has(post)) {
-        processPost(post, selectors);
+        processPost(post, selectors, index);
+        processedCount++;
+      } else {
+        skippedCount++;
       }
     });
+
+    console.info(
+      `${EXTENSION_NAME}: 📊 Initial processing complete - ` +
+      `Processed: ${processedCount}, Already processed: ${skippedCount}`
+    );
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Error processing existing posts:`, error);
   }
@@ -242,19 +291,34 @@ function processExistingPosts(selectors: PlatformSelectors): void {
 
 /**
  * Handle mutations from the MutationObserver
+ * Uses a batching queue to avoid dropping mutations during rapid scrolling
  */
-let debounceTimer: number | null = null;
-
 function handleMutations(mutations: MutationRecord[]): void {
   if (!currentSelectors) return;
 
-  // Debounce mutations
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
+  // Add mutations to queue
+  mutationQueue.push(...mutations);
+
+  console.info(
+    `${EXTENSION_NAME}: 📝 Mutation batch received (${mutations.length} mutations, ${mutationQueue.length} total queued)`
+  );
+
+  // Clear existing timer if any
+  if (processingDebounceTimer) {
+    clearTimeout(processingDebounceTimer);
   }
 
-  debounceTimer = window.setTimeout(() => {
-    processMutationBatch(mutations, currentSelectors!);
+  // Set new timer to process the entire queue
+  processingDebounceTimer = window.setTimeout(() => {
+    const queueSize = mutationQueue.length;
+    console.info(`${EXTENSION_NAME}: ⚡ Processing mutation queue (${queueSize} mutations)`);
+
+    // Process all queued mutations
+    processMutationBatch(mutationQueue, currentSelectors!);
+
+    // Clear the queue
+    mutationQueue = [];
+    processingDebounceTimer = null;
   }, OBSERVER_CONFIG.debounceMs);
 }
 
@@ -266,60 +330,112 @@ function processMutationBatch(
   selectors: PlatformSelectors
 ): void {
   const newPosts: Element[] = [];
+  const newPostsSet = new Set<Element>(); // Prevent duplicates
+  let addedNodesCount = 0;
+  let attributeChangesCount = 0;
 
   mutations.forEach((mutation) => {
-    mutation.addedNodes.forEach((node) => {
-      if (node instanceof Element) {
-        // Check if this node is a post
-        if (node.matches(selectors.postContainer)) {
-          newPosts.push(node);
-        }
+    if (mutation.type === 'childList') {
+      mutation.addedNodes.forEach((node) => {
+        addedNodesCount++;
+        if (node instanceof Element) {
+          // Check if this node is a post
+          if (node.matches(selectors.postContainer)) {
+            if (!newPostsSet.has(node)) {
+              newPostsSet.add(node);
+              newPosts.push(node);
+            }
+          }
 
-        // Also check children
-        const childPosts = node.querySelectorAll(selectors.postContainer);
-        childPosts.forEach((post) => newPosts.push(post));
+          // Also check children
+          const childPosts = node.querySelectorAll(selectors.postContainer);
+          childPosts.forEach((post) => {
+            if (!newPostsSet.has(post)) {
+              newPostsSet.add(post);
+              newPosts.push(post);
+            }
+          });
+        }
+      });
+    } else if (mutation.type === 'attributes') {
+      attributeChangesCount++;
+      // For attribute changes, check if the target is a post that needs reprocessing
+      const target = mutation.target;
+      if (target instanceof Element) {
+        // Check if it's a post or contains posts
+        if (target.matches(selectors.postContainer)) {
+          // Only retry if not already processed
+          if (!processedElements.has(target)) {
+            if (!newPostsSet.has(target)) {
+              newPostsSet.add(target);
+              newPosts.push(target);
+            }
+          }
+        }
       }
-    });
+    }
   });
 
+  console.info(
+    `${EXTENSION_NAME}: 🔍 Mutation analysis - ` +
+    `Added nodes: ${addedNodesCount}, Attribute changes: ${attributeChangesCount}, ` +
+    `Posts found: ${newPosts.length}`
+  );
+
   if (newPosts.length > 0) {
-    console.info(`${EXTENSION_NAME}: Detected ${newPosts.length} new posts`);
-    newPosts.forEach((post) => processPost(post, selectors));
+    console.info(`${EXTENSION_NAME}: 🎯 Processing ${newPosts.length} posts from mutations`);
+    newPosts.forEach((post, index) => {
+      processPost(post, selectors, index);
+    });
+  } else {
+    console.info(`${EXTENSION_NAME}: ⚠️ No new posts found in mutation batch`);
   }
 }
 
 /**
  * Process a single post element
  */
-function processPost(postElement: Element, selectors: PlatformSelectors): void {
-  // Skip if already processed
+function processPost(postElement: Element, selectors: PlatformSelectors, debugIndex?: number): void {
+  const debugPrefix = debugIndex !== undefined ? `[Post ${debugIndex + 1}]` : '[Post]';
+
+  // Skip if already processed (check FIRST to avoid duplicate processing)
   if (processedElements.has(postElement)) {
+    console.info(`${EXTENSION_NAME}: ${debugPrefix} ⏭️ Already processed, skipping`);
     return;
   }
 
-  // Mark as processed
-  processedElements.add(postElement);
-
-  // Extract text
+  // Extract text FIRST (before marking as processed)
   const textElement = postElement.querySelector(selectors.textContent);
   if (!textElement) {
+    // Text not loaded yet - don't mark as processed, will retry on next mutation
+    console.info(
+      `${EXTENSION_NAME}: ${debugPrefix} ⏸️ No text element found (selector: "${selectors.textContent}"), will retry`
+    );
     return;
   }
 
   const text = textElement.textContent?.trim();
   if (!text || text.length < OBSERVER_CONFIG.minTextLength) {
+    // No meaningful text - don't mark as processed, will retry
+    console.info(
+      `${EXTENSION_NAME}: ${debugPrefix} ⏸️ Text too short (${text?.length || 0} chars < ${OBSERVER_CONFIG.minTextLength}), will retry`
+    );
     return;
   }
+
+  // Mark as processed (only after successful text extraction)
+  processedElements.add(postElement);
 
   // Generate unique ID
   const elementId = generateElementId(postElement);
 
   // Log detection
   console.info(
-    `${EXTENSION_NAME}: 🎯 Detected new post!`,
-    '\nID:', elementId,
-    '\nText:', text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-    '\nLength:', text.length
+    `${EXTENSION_NAME}: ${debugPrefix} ✅ Post detected and queued for fact-checking!`,
+    '\n  ID:', elementId,
+    '\n  Text preview:', text.substring(0, 100) + (text.length > 100 ? '...' : ''),
+    '\n  Text length:', text.length,
+    '\n  Element:', postElement.tagName
   );
 
   // Create and show indicator

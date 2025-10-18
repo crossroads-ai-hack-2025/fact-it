@@ -1,21 +1,55 @@
 /**
  * Popup script for Fact-It extension settings
+ * Supports multi-provider configuration
  */
 
-import { MessageType, ExtensionSettings } from '@/shared/types';
+import { MessageType, ExtensionSettings, ProviderSettings } from '@/shared/types';
 import { EXTENSION_NAME } from '@/shared/constants';
+import { providerRegistry, ProviderId } from '@/background/ai/providers/registry';
 
 console.info(`${EXTENSION_NAME}: Popup loaded`);
 
-// DOM elements
+// DOM elements - status
 const statusIndicator = document.getElementById('status-indicator') as HTMLDivElement;
 const statusText = document.getElementById('status-text') as HTMLSpanElement;
-const openaiApiKeyInput = document.getElementById('openai-api-key') as HTMLInputElement;
+
+// DOM elements - providers
+const providers: Record<ProviderId, {
+  enabledCheckbox: HTMLInputElement;
+  apiKeyInput: HTMLInputElement;
+  testButton: HTMLButtonElement;
+  statusSpan: HTMLSpanElement;
+  configDiv: HTMLDivElement;
+}> = {
+  openai: {
+    enabledCheckbox: document.getElementById('openai-enabled') as HTMLInputElement,
+    apiKeyInput: document.getElementById('openai-api-key') as HTMLInputElement,
+    testButton: document.getElementById('test-openai') as HTMLButtonElement,
+    statusSpan: document.getElementById('openai-status') as HTMLSpanElement,
+    configDiv: document.getElementById('openai-config') as HTMLDivElement,
+  },
+  anthropic: {
+    enabledCheckbox: document.getElementById('anthropic-enabled') as HTMLInputElement,
+    apiKeyInput: document.getElementById('anthropic-api-key') as HTMLInputElement,
+    testButton: document.getElementById('test-anthropic') as HTMLButtonElement,
+    statusSpan: document.getElementById('anthropic-status') as HTMLSpanElement,
+    configDiv: document.getElementById('anthropic-config') as HTMLDivElement,
+  },
+  perplexity: {
+    enabledCheckbox: document.getElementById('perplexity-enabled') as HTMLInputElement,
+    apiKeyInput: document.getElementById('perplexity-api-key') as HTMLInputElement,
+    testButton: document.getElementById('test-perplexity') as HTMLButtonElement,
+    statusSpan: document.getElementById('perplexity-status') as HTMLSpanElement,
+    configDiv: document.getElementById('perplexity-config') as HTMLDivElement,
+  },
+};
+
+// DOM elements - general settings
 const autoCheckInput = document.getElementById('auto-check') as HTMLInputElement;
 const confidenceThresholdInput = document.getElementById('confidence-threshold') as HTMLInputElement;
 const thresholdValueSpan = document.getElementById('threshold-value') as HTMLSpanElement;
 const saveButton = document.getElementById('save-settings') as HTMLButtonElement;
-const openaiStatusSpan = document.getElementById('openai-status') as HTMLSpanElement;
+const saveFeedback = document.getElementById('save-feedback') as HTMLDivElement;
 
 // Initialize popup
 init();
@@ -63,29 +97,37 @@ async function loadSettings(): Promise<void> {
     chrome.runtime.sendMessage({ type: MessageType.GET_SETTINGS }, (response) => {
       if (chrome.runtime.lastError) {
         console.error(`${EXTENSION_NAME}: Failed to load settings:`, chrome.runtime.lastError);
-        showNotification('Failed to load settings', 'error');
+        showFeedback('Failed to load settings', 'error');
         return;
       }
 
       const settings = response.settings as ExtensionSettings;
 
-      // Populate form with existing settings
-      if (settings.openaiApiKey) {
-        openaiApiKeyInput.value = settings.openaiApiKey;
+      // Populate provider settings
+      for (const providerId of Object.keys(providers) as ProviderId[]) {
+        const providerSettings = settings.providers[providerId];
+        const providerElements = providers[providerId];
+
+        providerElements.enabledCheckbox.checked = providerSettings.enabled ?? false;
+        providerElements.apiKeyInput.value = providerSettings.apiKey || '';
+
+        // Show/hide config section based on enabled state
+        updateProviderConfigVisibility(providerId);
+
+        // Update status
+        updateProviderStatus(providerId, providerSettings);
       }
 
+      // Populate general settings
       autoCheckInput.checked = settings.autoCheckEnabled ?? true;
       confidenceThresholdInput.value = String(settings.confidenceThreshold ?? 70);
       thresholdValueSpan.textContent = String(settings.confidenceThreshold ?? 70);
 
       console.info(`${EXTENSION_NAME}: Settings loaded`);
-
-      // Update configuration status indicators
-      updateConfigurationStatus(settings);
     });
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Error loading settings:`, error);
-    showNotification('Error loading settings', 'error');
+    showFeedback('Error loading settings', 'error');
   }
 }
 
@@ -101,28 +143,129 @@ function setupEventListeners(): void {
     thresholdValueSpan.textContent = confidenceThresholdInput.value;
   });
 
-  // Enter key to save
-  openaiApiKeyInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      saveSettings();
+  // Provider-specific event listeners
+  for (const providerId of Object.keys(providers) as ProviderId[]) {
+    const providerElements = providers[providerId];
+
+    // Toggle config visibility when checkbox changes
+    providerElements.enabledCheckbox.addEventListener('change', () => {
+      updateProviderConfigVisibility(providerId);
+    });
+
+    // Test API key button
+    providerElements.testButton.addEventListener('click', () => {
+      testProviderApiKey(providerId);
+    });
+  }
+}
+
+/**
+ * Update provider config visibility based on enabled state
+ */
+function updateProviderConfigVisibility(providerId: ProviderId): void {
+  const providerElements = providers[providerId];
+  const isEnabled = providerElements.enabledCheckbox.checked;
+
+  providerElements.configDiv.style.display = isEnabled ? 'block' : 'none';
+}
+
+/**
+ * Update provider status indicator
+ */
+function updateProviderStatus(providerId: ProviderId, settings: ProviderSettings): void {
+  const statusSpan = providers[providerId].statusSpan;
+
+  if (!settings.enabled) {
+    statusSpan.textContent = '';
+    statusSpan.className = 'config-status';
+    return;
+  }
+
+  if (settings.apiKey) {
+    statusSpan.textContent = 'Configured';
+    statusSpan.className = 'config-status configured';
+  } else {
+    statusSpan.textContent = 'Not configured';
+    statusSpan.className = 'config-status';
+  }
+}
+
+/**
+ * Test provider API key
+ */
+async function testProviderApiKey(providerId: ProviderId): Promise<void> {
+  const providerElements = providers[providerId];
+  const apiKey = providerElements.apiKeyInput.value.trim();
+
+  if (!apiKey) {
+    showFeedback(`Please enter ${providerRegistry[providerId].displayName} API key first`, 'error');
+    return;
+  }
+
+  const testButton = providerElements.testButton;
+  const originalText = testButton.textContent;
+  testButton.textContent = 'Testing...';
+  testButton.disabled = true;
+
+  try {
+    const provider = providerRegistry[providerId];
+    const result = await provider.testApiKey(apiKey);
+
+    if (result.valid) {
+      showFeedback(`${provider.displayName} API key is valid!`, 'success');
+      providerElements.statusSpan.textContent = 'Valid';
+      providerElements.statusSpan.className = 'config-status configured';
+    } else {
+      showFeedback(`${provider.displayName} API key is invalid: ${result.error}`, 'error');
+      providerElements.statusSpan.textContent = 'Invalid';
+      providerElements.statusSpan.className = 'config-status';
     }
-  });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error testing ${providerId} API key:`, error);
+    showFeedback(`Failed to test API key: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+  } finally {
+    testButton.textContent = originalText;
+    testButton.disabled = false;
+  }
 }
 
 /**
  * Save settings to storage
  */
 async function saveSettings(): Promise<void> {
-  // Disable button during save
-  saveButton.disabled = true;
-  saveButton.textContent = 'Saving...';
-
   try {
+    // Validate: at least one provider must be enabled and configured
+    const enabledProviders = (Object.keys(providers) as ProviderId[]).filter((providerId) => {
+      const providerElements = providers[providerId];
+      return providerElements.enabledCheckbox.checked && providerElements.apiKeyInput.value.trim();
+    });
+
+    if (enabledProviders.length === 0) {
+      showFeedback('Please enable and configure at least one AI provider', 'error');
+      return;
+    }
+
+    // Collect provider settings
+    const providerSettings: Record<ProviderId, ProviderSettings> = {} as Record<ProviderId, ProviderSettings>;
+
+    for (const providerId of Object.keys(providers) as ProviderId[]) {
+      const providerElements = providers[providerId];
+      providerSettings[providerId] = {
+        enabled: providerElements.enabledCheckbox.checked,
+        apiKey: providerElements.apiKeyInput.value.trim() || null,
+      };
+    }
+
+    // Collect all settings
     const settings = {
-      openaiApiKey: openaiApiKeyInput.value.trim() || null,
+      providers: providerSettings,
       autoCheckEnabled: autoCheckInput.checked,
       confidenceThreshold: parseInt(confidenceThresholdInput.value, 10),
     };
+
+    // Save to storage
+    saveButton.textContent = 'Saving...';
+    saveButton.disabled = true;
 
     chrome.runtime.sendMessage(
       {
@@ -130,27 +273,31 @@ async function saveSettings(): Promise<void> {
         payload: settings,
       },
       (response) => {
+        saveButton.textContent = 'Save Settings';
+        saveButton.disabled = false;
+
         if (chrome.runtime.lastError) {
           console.error(`${EXTENSION_NAME}: Failed to save settings:`, chrome.runtime.lastError);
-          showNotification('Failed to save settings', 'error');
+          showFeedback('Failed to save settings', 'error');
           return;
         }
 
         if (response.success) {
           console.info(`${EXTENSION_NAME}: Settings saved successfully`);
-          showNotification('Settings saved successfully!', 'success');
+          showFeedback(
+            `Settings saved! ${enabledProviders.length} provider(s) enabled: ${enabledProviders.map(id => providerRegistry[id].displayName).join(', ')}`,
+            'success'
+          );
         } else {
-          showNotification('Error saving settings', 'error');
+          showFeedback('Failed to save settings', 'error');
         }
       }
     );
   } catch (error) {
     console.error(`${EXTENSION_NAME}: Error saving settings:`, error);
-    showNotification('Error saving settings', 'error');
-  } finally {
-    // Re-enable button
-    saveButton.disabled = false;
+    showFeedback('Error saving settings', 'error');
     saveButton.textContent = 'Save Settings';
+    saveButton.disabled = false;
   }
 }
 
@@ -158,62 +305,20 @@ async function saveSettings(): Promise<void> {
  * Update status indicator
  */
 function updateStatus(type: 'success' | 'warning' | 'error', message: string): void {
-  const colors = {
-    success: '#4caf50',
-    warning: '#ff9800',
-    error: '#f44336',
-  };
-
-  if (statusIndicator) {
-    statusIndicator.style.borderLeftColor = colors[type];
-  }
-
-  const dot = statusIndicator?.querySelector('.status-dot') as HTMLSpanElement;
-  if (dot) {
-    dot.style.background = colors[type];
-  }
-
-  if (statusText) {
-    statusText.textContent = message;
-  }
+  statusIndicator.className = `status-indicator ${type}`;
+  statusText.textContent = message;
 }
 
 /**
- * Show a notification message
+ * Show feedback message
  */
-function showNotification(message: string, type: 'success' | 'error' = 'success'): void {
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.textContent = message;
+function showFeedback(message: string, type: 'success' | 'error'): void {
+  saveFeedback.textContent = message;
+  saveFeedback.className = `feedback-message ${type}`;
+  saveFeedback.style.display = 'block';
 
-  document.body.appendChild(notification);
-
-  // Auto-remove after 3 seconds
+  // Auto-hide after 5 seconds
   setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => notification.remove(), 300);
-  }, 3000);
-}
-
-/**
- * Update configuration status indicators based on current settings
- */
-function updateConfigurationStatus(settings: ExtensionSettings): void {
-  const hasOpenAI = Boolean(settings.openaiApiKey && settings.openaiApiKey.trim());
-
-  // Update OpenAI status badge
-  if (hasOpenAI) {
-    openaiStatusSpan.textContent = '✓ Configured';
-    openaiStatusSpan.className = 'config-status configured';
-  } else {
-    openaiStatusSpan.textContent = '⚠ Not configured';
-    openaiStatusSpan.className = 'config-status not-configured';
-  }
-
-  // Update main status indicator
-  if (hasOpenAI) {
-    updateStatus('success', 'Extension ready - OpenAI API key configured');
-  } else {
-    updateStatus('warning', 'Configuration needed - add OpenAI API key to start');
-  }
+    saveFeedback.style.display = 'none';
+  }, 5000);
 }

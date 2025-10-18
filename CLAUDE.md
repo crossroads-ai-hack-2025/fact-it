@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fact-It is a Chrome extension (Manifest V3) that provides real-time fact-checking for social media posts. It uses a two-stage AI verification system: GPT-4o-mini for claim detection (Stage 1) and GPT-4o + Brave Search for verification (Stage 2). The extension is currently in Phase 1 (skeleton implementation).
+Fact-It is a Chrome extension (Manifest V3) that provides real-time fact-checking for social media posts. It uses a **multi-provider AI architecture** supporting OpenAI, Anthropic, and Perplexity for parallel fact-checking and cross-verification.
+
+**Multi-Provider System:**
+- **OpenAI**: GPT-4o with built-in web search
+- **Anthropic**: Claude 3.5 Sonnet/Haiku with Brave Search integration
+- **Perplexity**: Sonar Pro with real-time citation-backed search (SimpleQA F-score: 0.858)
+
+Each provider runs a two-stage pipeline: Stage 1 (claim detection) and Stage 2 (claim verification with web search). Results from all enabled providers are aggregated to show consensus and individual provider verdicts.
 
 ## Development Commands
 
@@ -79,8 +86,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 **2. Background Service Worker** (`src/background/service-worker.ts`) - Persistent background
 - Event-driven (Chrome may terminate when idle)
-- Handles all API calls (OpenAI, Brave Search) - content scripts have restricted network access
-- Manages chrome.storage.local (API keys, cache, settings)
+- Orchestrates parallel fact-checking across multiple AI providers
+- Handles all API calls (OpenAI, Anthropic, Perplexity) - content scripts have restricted network access
+- Manages chrome.storage.local (API keys for all providers, cache, settings)
 - Message passing hub between content scripts and popup
 - **Critical:** Service workers can terminate - always use async/await properly and handle restarts
 
@@ -100,6 +108,88 @@ import { SELECTORS } from '@/shared/constants';
 Configured in:
 - `tsconfig.json` → `"paths": { "@/*": ["src/*"] }`
 - `vite.config.ts` → `resolve: { alias: { '@': '/src' } }`
+
+## Architecture: Multi-Provider AI System
+
+The extension uses a provider-agnostic architecture that supports multiple AI services running in parallel.
+
+**Provider Interface** (`src/background/ai/providers/types.ts`):
+```typescript
+interface AIProvider {
+  id: string;
+  displayName: string;
+  testApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }>;
+  detectClaims(text: string, apiKey: string): Promise<ClaimDetectionResult>;
+  verifyClaim(claim: string, apiKey: string): Promise<VerificationVerdictResult>;
+}
+```
+
+**Supported Providers:**
+1. **OpenAI** (`src/background/ai/providers/openai.ts`)
+   - Models: `gpt-4o-mini` (Stage 1), `gpt-4o` (Stage 2)
+   - Web search: Built-in OpenAI web_search tool
+   - Cost: Token-based only
+
+2. **Anthropic** (`src/background/ai/providers/anthropic.ts`)
+   - Models: `claude-3-5-haiku` (Stage 1), `claude-3-5-sonnet` (Stage 2)
+   - Web search: Built-in Brave Search (`webSearch_20250305` tool)
+   - Cost: Token-based + $10 per 1,000 searches
+
+3. **Perplexity** (`src/background/ai/providers/perplexity.ts`)
+   - Models: `sonar` (Stage 1), `sonar-pro` (Stage 2)
+   - Web search: Built-in real-time search (no separate tool needed)
+   - Cost: Token-based only
+   - Note: Leads SimpleQA factuality benchmark (F-score: 0.858)
+
+**Provider Registry** (`src/background/ai/providers/registry.ts`):
+```typescript
+export const providerRegistry = {
+  openai: new OpenAIProvider(),
+  anthropic: new AnthropicProvider(),
+  perplexity: new PerplexityProvider(),
+} as const;
+```
+
+**Orchestrator** (`src/background/ai/orchestrator.ts`):
+- Manages parallel execution across enabled providers
+- Uses `Promise.allSettled()` for fault tolerance
+- Aggregates results: weighted average confidence, source deduplication
+- Calculates consensus: how many providers agree on verdict
+- Returns `AggregatedResult` with provider-specific details
+
+**Parallel Execution Flow:**
+1. User enables multiple providers in popup settings
+2. Content script sends `CHECK_CLAIM` message to service worker
+3. Orchestrator runs **Stage 1** (claim detection) in parallel across all enabled providers
+4. If no providers find claims, return `no_claim` verdict early
+5. Orchestrator runs **Stage 2** (verification) in parallel for providers that found claims
+6. Results aggregated: majority vote determines verdict, confidence is weighted average
+7. Aggregated result sent back to content script with consensus details
+
+**Settings Structure** (`src/shared/types.ts`):
+```typescript
+interface ExtensionSettings {
+  providers: {
+    openai: ProviderSettings;
+    anthropic: ProviderSettings;
+    perplexity: ProviderSettings;
+  };
+  autoCheckEnabled: boolean;
+  confidenceThreshold: number;
+}
+
+interface ProviderSettings {
+  enabled: boolean;
+  apiKey: string | null;
+}
+```
+
+**Adding New Providers:**
+1. Create provider class implementing `AIProvider` interface
+2. Add to `providerRegistry` in `registry.ts`
+3. Update `ExtensionSettings` type to include new provider
+4. Add UI controls in `popup.html` and `popup.ts`
+5. Provider automatically participates in parallel execution
 
 ## Platform-Specific Selectors
 
@@ -144,23 +234,35 @@ chrome.runtime.sendMessage({ type: 'PING' }, console.log);
 // Should return: { status: 'ok', timestamp: ... }
 ```
 
-## Two-Stage Fact-Checking Architecture (Future Implementation)
+## Two-Stage Fact-Checking Architecture
 
-**Current status:** Phase 1 skeleton - returns mock responses
+**Current status:** Fully implemented with multi-provider support (v0.2.0)
 
-**Planned architecture:**
+**How it works:**
 
-1. Content script extracts text from post
-2. Background worker: **Stage 1** - GPT-4o-mini classifies if text contains checkable factual claims
-   - If no claims → Stop (saves API costs)
-   - If has claims → Proceed to Stage 2
-3. Background worker: **Stage 2** - GPT-4o with function calling:
-   - Calls Brave Search API (1-3 queries)
-   - Synthesizes search results
-   - Returns verdict: 'true' | 'false' | 'unknown' with confidence score (0-100)
-4. Content script displays visual indicator with verdict
+1. Content script extracts text from social media post
+2. Background orchestrator runs **Stage 1** (claim detection) in **parallel** across all enabled providers
+   - Each provider classifies if text contains checkable factual claims
+   - If NO providers find claims → Return `no_claim` verdict (saves API costs)
+   - If ANY providers find claims → Proceed to Stage 2
+3. Background orchestrator runs **Stage 2** (verification) in **parallel** for providers that found claims
+   - Each provider uses its own web search capabilities:
+     - **OpenAI**: GPT-4o with built-in web_search tool
+     - **Anthropic**: Claude 3.5 Sonnet with Brave Search
+     - **Perplexity**: Sonar Pro with real-time citation-backed search
+   - Each provider returns verdict: 'true' | 'false' | 'unknown' with confidence (0-100)
+4. Orchestrator aggregates results:
+   - **Verdict**: Majority vote weighted by confidence
+   - **Confidence**: Weighted average of agreeing providers
+   - **Sources**: Deduplicated across all providers with attribution
+   - **Consensus**: How many providers agree (e.g., "2/3 providers agree")
+5. Content script displays aggregated result with provider-specific details
 
-**Important:** Prefer 'unknown' verdict over forced classification when evidence is insufficient. This is an ethical design decision.
+**Ethical Design Decisions:**
+- Prefer 'unknown' verdict over forced classification when evidence is insufficient
+- Show consensus to indicate provider agreement/disagreement
+- Display individual provider results for transparency
+- Aggregate sources from multiple providers for comprehensive verification
 
 ## Code Style Enforcement
 
@@ -171,19 +273,24 @@ chrome.runtime.sendMessage({ type: 'PING' }, console.log);
 
 ## Development Phase Status
 
-**Current Phase:** Phase 1 - Skeleton (COMPLETE)
+**Current Phase:** Phase 2 - Multi-Provider AI Integration (COMPLETE)
 - ✅ Vite build system with HMR
 - ✅ Twitter/X content script with MutationObserver
 - ✅ Background service worker with message passing
-- ✅ Popup UI for settings
-- ✅ Mock fact-checking responses
+- ✅ Popup UI for multi-provider settings
+- ✅ Provider abstraction layer (AIProvider interface)
+- ✅ OpenAI provider (GPT-4o-mini + GPT-4o with web search)
+- ✅ Anthropic provider (Claude 3.5 Haiku + Sonnet with Brave Search)
+- ✅ Perplexity provider (Sonar + Sonar Pro with real-time search)
+- ✅ Parallel execution orchestrator with result aggregation
+- ✅ Settings UI with API key testing for all providers
 
-**Next Phases** (see `tmp/2025-10-18-fact-checking-extension-implementation-plan.md`):
-- Phase 2: OpenAI API integration (Stage 1 + Stage 2)
-- Phase 3: Multi-platform support (LinkedIn, Facebook, articles)
-- Phase 4: Caching & performance optimization
-- Phase 5: UI polish & accessibility
-- Phase 6: Testing & Chrome Web Store release
+**Next Phases:**
+- Phase 3: Enhanced content script result display (show provider breakdown)
+- Phase 4: Multi-platform support (LinkedIn, Facebook, articles)
+- Phase 5: Caching & performance optimization
+- Phase 6: UI polish & accessibility
+- Phase 7: Testing & Chrome Web Store release
 
 ## Important Constraints
 

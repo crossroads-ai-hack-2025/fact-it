@@ -1,0 +1,55 @@
+INTRO - The Problem (0:00 - 0:45)
+[SCREEN: Showing Mo Gawdat's LinkedIn/social media post]
+YOU:
+"I saw this post from Mo Gawdat the other day. If you don't know him, he's the former Chief Business Officer at Google X, and I really respect his insights on AI and consciousness.
+[READ excerpt, emphasizing]:
+'In 2007, an MIT study put people in MRI machines... The brain discovered the answer first, in silence. Then, a few seconds later, the verbal part lit up.'
+This fascinated me. I immediately sent it to friends. Then I did what any curious person would do—I tried to find this MIT study.
+[SCREEN: Show Google search attempts, scrolling, frustrated clicking]
+And... I couldn't find it. Is it real? Is it misremembered? Was this post AI-generated? I have no idea.
+And that's the problem. We're drowning in interesting claims, but we have no easy way to verify them."
+
+SOLUTION (0:45 - 1:05)
+[SCREEN: Close browser tabs, take a breath]
+YOU:
+"That's exactly why we built Fact-It. It's a Chrome extension that automatically fact-checks claims in social media posts—right where you're reading them.
+Let me show you how it works."
+
+DEMO - Part 1: Automatic Checking (1:05 - 1:50)
+[SCREEN: Refresh the Mo Gawdat post with Fact-It installed]
+YOU:
+"So here's that same post. With Fact-It installed, watch what happens.
+[SCREEN: Show the extension analyzing the post - loading state]
+Fact-It automatically detects claims in the post and starts checking them in the background.
+[SCREEN: Results appear next to the post]
+And here we go. It's identified the key claim about the '2007 MIT study' and shows me:
+
+The confidence level - in this case, it couldn't verify this specific claim
+An explanation of what it found
+And sources it checked
+
+[SCREEN: Click to expand the details]
+So now I know: be a little skeptical. This might be a real study that's hard to find, or it might be inaccurate. Either way, I'm informed."
+
+DEMO - Part 2: Key Features (1:50 - 2:35)
+[SCREEN: Open extension settings]
+YOU:
+"Now, here's what makes Fact-It powerful:
+[SCREEN: Show model provider settings]
+One: You can configure different AI model providers—OpenAI, Anthropic, Gemini—and run them in parallel. This gives you multiple perspectives on the same claim.
+[SCREEN: Navigate to another social media post, maybe Twitter/X or Facebook]
+Two: It works across platforms—Twitter, LinkedIn, Facebook, wherever you see claims.
+[SCREEN: Show the extension icon, toggle off automatic mode]
+Three: Don't want it running on everything? Just disable automatic checks...
+[SCREEN: Click the extension icon on a post to manually trigger]
+...and trigger it manually only when you want to verify something. You stay in control."
+
+CLOSING (2:35 - 3:00)
+[SCREEN: Back to a clean view, maybe showing multiple verified posts]
+YOU:
+"Look, we're not trying to be the arbiters of truth. Fact-It is a tool to help you think critically about what you read online.
+In a world where AI can generate incredibly convincing content, and misinformation spreads faster than ever, you deserve to know when something might not be what it seems.
+[SCREEN: Show download link/CTA]
+Try Fact-It for free. The link is in the description.
+Stay curious, but verify."
+[FADE OUT]

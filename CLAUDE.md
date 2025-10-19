@@ -244,7 +244,7 @@ chrome.runtime.sendMessage({ type: 'PING' }, console.log);
 
 ## Two-Stage Fact-Checking Architecture
 
-**Current status:** Fully implemented with multi-provider support (v0.2.0)
+**Current status:** Fully implemented with multi-provider support (v0.1.0)
 
 **How it works:**
 

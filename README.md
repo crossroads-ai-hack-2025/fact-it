@@ -4,7 +4,7 @@
 
 A Chrome extension that uses AI to detect and verify factual claims in social media posts as you browse. Built with TypeScript, Vite, and Manifest V3.
 
-## ⚠️ Important: Facebook Support (Known Issues)
+## ⚠️ Important: Facebook Support (Known Issues To Be Fixed)
 
 **Facebook requires special handling due to dynamic selectors:**
 

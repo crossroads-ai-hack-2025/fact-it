@@ -14,6 +14,8 @@ const statusIndicator = document.getElementById('status-indicator') as HTMLDivEl
 const statusText = document.getElementById('status-text') as HTMLSpanElement;
 
 // DOM elements - providers
+const providersDetailsElement = document.getElementById('providers-details') as HTMLDetailsElement;
+
 const providers: Record<ProviderId, {
   enabledCheckbox: HTMLInputElement;
   apiKeyInput: HTMLInputElement;
@@ -126,6 +128,9 @@ async function loadSettings(): Promise<void> {
 
       const settings = response.settings as ExtensionSettings;
 
+      // Check if any provider is configured
+      let anyProviderConfigured = false;
+
       // Populate provider settings
       for (const providerId of Object.keys(providers) as ProviderId[]) {
         const providerSettings = settings.providers[providerId];
@@ -134,12 +139,20 @@ async function loadSettings(): Promise<void> {
         providerElements.enabledCheckbox.checked = providerSettings.enabled ?? false;
         providerElements.apiKeyInput.value = providerSettings.apiKey || '';
 
+        // Check if this provider is configured
+        if (providerSettings.apiKey) {
+          anyProviderConfigured = true;
+        }
+
         // Show/hide config section based on enabled state
         updateProviderConfigVisibility(providerId);
 
         // Update status
         updateProviderStatus(providerId, providerSettings);
       }
+
+      // Set providers section open state: open if NO providers configured, closed if at least one is configured
+      providersDetailsElement.open = !anyProviderConfigured;
 
       // Populate general settings
       autoCheckInput.checked = settings.autoCheckEnabled ?? true;

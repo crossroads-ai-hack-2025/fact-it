@@ -205,7 +205,7 @@ export class DatasetManager {
     samples: T[],
     train: number,
     val: number,
-    test: number,
+    _test: number,
     random: () => number
   ): DatasetSplits<T> {
     const shuffled = [...samples].sort(() => random() - 0.5);
@@ -228,7 +228,7 @@ export class DatasetManager {
     samples: T[],
     train: number,
     val: number,
-    test: number,
+    _test: number,
     stratifyField: string,
     random: () => number
   ): DatasetSplits<T> {

@@ -22,116 +22,7 @@
         </section>
 
         <section class="settings">
-          <h2>AI Providers</h2>
-          <p class="help-text">Configure one or more AI providers for fact-checking. Multiple providers will run in parallel for cross-verification.</p>
-
-          <!-- OpenAI Provider -->
-          <div class="provider-section">
-            <div class="provider-header">
-              <label class="provider-toggle">
-                <input type="checkbox" id="openai-enabled" class="provider-checkbox" />
-                <span class="provider-name">OpenAI</span>
-              </label>
-              <span class="config-status" id="openai-status"></span>
-            </div>
-            <div class="provider-config" id="openai-config">
-              <div class="form-group">
-                <label for="openai-api-key">
-                  API Key
-                  <span class="optional">(GPT-4o with built-in web search)</span>
-                </label>
-                <div class="input-with-button">
-                  <input
-                    type="password"
-                    id="openai-api-key"
-                    placeholder="sk-..."
-                    autocomplete="off"
-                  />
-                  <button class="btn-test" id="test-openai">Test</button>
-                </div>
-                <small class="help-text">
-                  Get your API key from
-                  <a href="https://platform.openai.com/api-keys" target="_blank">
-                    platform.openai.com
-                  </a>
-                </small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Anthropic Provider -->
-          <div class="provider-section">
-            <div class="provider-header">
-              <label class="provider-toggle">
-                <input type="checkbox" id="anthropic-enabled" class="provider-checkbox" />
-                <span class="provider-name">Anthropic</span>
-              </label>
-              <span class="config-status" id="anthropic-status"></span>
-            </div>
-            <div class="provider-config" id="anthropic-config">
-              <div class="form-group">
-                <label for="anthropic-api-key">
-                  API Key
-                  <span class="optional">(Claude 3.5 with Brave Search)</span>
-                </label>
-                <div class="input-with-button">
-                  <input
-                    type="password"
-                    id="anthropic-api-key"
-                    placeholder="sk-ant-..."
-                    autocomplete="off"
-                  />
-                  <button class="btn-test" id="test-anthropic">Test</button>
-                </div>
-                <small class="help-text">
-                  Get your API key from
-                  <a href="https://console.anthropic.com" target="_blank">
-                    console.anthropic.com
-                  </a>
-                  <br />
-                  Note: $10 per 1,000 searches + token costs
-                </small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Perplexity Provider -->
-          <div class="provider-section">
-            <div class="provider-header">
-              <label class="provider-toggle">
-                <input type="checkbox" id="perplexity-enabled" class="provider-checkbox" />
-                <span class="provider-name">Perplexity</span>
-              </label>
-              <span class="config-status" id="perplexity-status"></span>
-            </div>
-            <div class="provider-config" id="perplexity-config">
-              <div class="form-group">
-                <label for="perplexity-api-key">
-                  API Key
-                  <span class="optional">(Sonar Pro with real-time search)</span>
-                </label>
-                <div class="input-with-button">
-                  <input
-                    type="password"
-                    id="perplexity-api-key"
-                    placeholder="pplx-..."
-                    autocomplete="off"
-                  />
-                  <button class="btn-test" id="test-perplexity">Test</button>
-                </div>
-                <small class="help-text">
-                  Get your API key from
-                  <a href="https://www.perplexity.ai/settings/api" target="_blank">
-                    perplexity.ai/settings/api
-                  </a>
-                  <br />
-                  Note: Leading SimpleQA benchmark (F-score: 0.858)
-                </small>
-              </div>
-            </div>
-          </div>
-
-          <h3>General Settings</h3>
+          <h2>General Settings</h2>
 
           <div class="form-group checkbox">
             <label>
@@ -157,8 +48,121 @@
             </small>
           </div>
 
-          <button id="save-settings" class="btn-primary">Save Settings</button>
-          <div id="save-feedback" class="feedback-message"></div>
+          <details class="providers-section" id="providers-details">
+            <summary>
+              <h2>AI Providers</h2>
+            </summary>
+
+            <div class="providers-content">
+              <p class="help-text">Configure one or more AI providers for fact-checking. Multiple providers will run in parallel for cross-verification.</p>
+
+              <!-- OpenAI Provider -->
+              <div class="provider-section">
+                <div class="provider-header">
+                  <label class="provider-toggle">
+                    <input type="checkbox" id="openai-enabled" class="provider-checkbox" />
+                    <span class="provider-name">OpenAI</span>
+                  </label>
+                  <span class="config-status" id="openai-status"></span>
+                </div>
+                <div class="provider-config" id="openai-config">
+                  <div class="form-group">
+                    <label for="openai-api-key">
+                      API Key
+                      <span class="optional">(GPT-4o with built-in web search)</span>
+                    </label>
+                    <div class="input-with-button">
+                      <input
+                        type="password"
+                        id="openai-api-key"
+                        placeholder="sk-..."
+                        autocomplete="off"
+                      />
+                      <button class="btn-test" id="test-openai">Test</button>
+                    </div>
+                    <small class="help-text">
+                      Get your API key from
+                      <a href="https://platform.openai.com/api-keys" target="_blank">
+                        platform.openai.com
+                      </a>
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Anthropic Provider -->
+              <div class="provider-section">
+                <div class="provider-header">
+                  <label class="provider-toggle">
+                    <input type="checkbox" id="anthropic-enabled" class="provider-checkbox" />
+                    <span class="provider-name">Anthropic</span>
+                  </label>
+                  <span class="config-status" id="anthropic-status"></span>
+                </div>
+                <div class="provider-config" id="anthropic-config">
+                  <div class="form-group">
+                    <label for="anthropic-api-key">
+                      API Key
+                      <span class="optional">(Claude 3.5 with Brave Search)</span>
+                    </label>
+                    <div class="input-with-button">
+                      <input
+                        type="password"
+                        id="anthropic-api-key"
+                        placeholder="sk-ant-..."
+                        autocomplete="off"
+                      />
+                      <button class="btn-test" id="test-anthropic">Test</button>
+                    </div>
+                    <small class="help-text">
+                      Get your API key from
+                      <a href="https://console.anthropic.com" target="_blank">
+                        console.anthropic.com
+                      </a>
+                      <br />
+                      Note: $10 per 1,000 searches + token costs
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Perplexity Provider -->
+              <div class="provider-section">
+                <div class="provider-header">
+                  <label class="provider-toggle">
+                    <input type="checkbox" id="perplexity-enabled" class="provider-checkbox" />
+                    <span class="provider-name">Perplexity</span>
+                  </label>
+                  <span class="config-status" id="perplexity-status"></span>
+                </div>
+                <div class="provider-config" id="perplexity-config">
+                  <div class="form-group">
+                    <label for="perplexity-api-key">
+                      API Key
+                      <span class="optional">(Sonar Pro with real-time search)</span>
+                    </label>
+                    <div class="input-with-button">
+                      <input
+                        type="password"
+                        id="perplexity-api-key"
+                        placeholder="pplx-..."
+                        autocomplete="off"
+                      />
+                      <button class="btn-test" id="test-perplexity">Test</button>
+                    </div>
+                    <small class="help-text">
+                      Get your API key from
+                      <a href="https://www.perplexity.ai/settings/api" target="_blank">
+                        perplexity.ai/settings/api
+                      </a>
+                      <br />
+                      Note: Leading SimpleQA benchmark (F-score: 0.858)
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="advanced-section">
@@ -214,6 +218,12 @@
             </div>
           </details>
         </section>
+
+        <!-- Sticky Save Button -->
+        <div class="sticky-button-container">
+          <button id="save-settings" class="btn-primary">Save Settings</button>
+          <div id="save-feedback" class="feedback-message"></div>
+        </div>
       </main>
 
       <footer>

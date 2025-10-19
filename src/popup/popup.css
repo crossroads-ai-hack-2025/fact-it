@@ -43,6 +43,7 @@ header h1 {
 /* Main content */
 main {
   padding: 20px;
+  padding-bottom: 80px; /* Space for sticky button */
 }
 
 /* Status section */
@@ -320,7 +321,55 @@ footer {
   }
 }
 
-/* Provider sections */
+/* Providers Section (Collapsible) */
+.providers-section {
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.providers-section summary {
+  padding: 16px;
+  background: #f8f9fa;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.providers-section summary:hover {
+  background: #e9ecef;
+}
+
+.providers-section summary h2 {
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+}
+
+.providers-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.providers-section summary::before {
+  content: '▶';
+  margin-right: 8px;
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.providers-section[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.providers-content {
+  padding: 16px;
+}
+
+/* Individual Provider sections */
 .provider-section {
   margin-bottom: 20px;
   padding: 16px;
@@ -612,4 +661,18 @@ footer {
 
 .btn-small.btn-danger:hover {
   background: #d32f2f;
+}
+
+/* Sticky Save Button Container */
+.sticky-button-container {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 20px;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  margin: 0 -20px -20px -20px; /* Extend to edges */
+  z-index: 10;
 }

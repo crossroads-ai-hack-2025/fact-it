@@ -21,10 +21,10 @@ export class FactCheckIndicator {
     // Use Shadow DOM for style isolation
     this.shadowRoot = this.element.attachShadow({ mode: 'closed' });
 
-    // Position absolutely in top-right corner
+    // Position absolutely slightly outside top-right corner of card
     this.element.style.position = 'absolute';
-    this.element.style.top = '8px';
-    this.element.style.right = '8px';
+    this.element.style.top = '-10px';
+    this.element.style.right = '-10px';
     this.element.style.zIndex = '2147483647'; // Maximum z-index
 
     this.showLoading();
@@ -55,8 +55,8 @@ export class FactCheckIndicator {
         }
 
         .indicator {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           background: #FFC107;
           display: flex;
@@ -84,8 +84,8 @@ export class FactCheckIndicator {
         }
 
         .spinner {
-          width: 16px;
-          height: 16px;
+          width: 14px;
+          height: 14px;
           border: 2px solid white;
           border-top-color: transparent;
           border-radius: 50%;
@@ -146,8 +146,8 @@ export class FactCheckIndicator {
         }
 
         .indicator {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           background: ${colors[result.verdict]};
           color: white;
@@ -155,7 +155,7 @@ export class FactCheckIndicator {
           align-items: center;
           justify-content: center;
           font-weight: bold;
-          font-size: 18px;
+          font-size: 16px;
           cursor: pointer;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
           transition: transform 0.2s ease, box-shadow 0.2s ease;

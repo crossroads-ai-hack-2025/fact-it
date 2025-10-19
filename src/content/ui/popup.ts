@@ -47,15 +47,17 @@ export class FactCheckPopup {
   show(): void {
     const rect = this.anchorElement.getBoundingClientRect();
 
-    // Position below and to the left of indicator
+    // Position below and to the left of indicator (indicator is in top-right corner)
     const popupWidth = 320;
-    let top = rect.bottom + 8;
-    let left = rect.right - popupWidth;
+    const popupHeight = 400;
+    let top = rect.bottom + 8; // Position below indicator
+    let left = rect.right - popupWidth; // Align right edge of popup with indicator
 
     // Ensure popup stays within viewport
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    // Adjust horizontal position if needed
     if (left < 8) {
       left = 8; // Min left padding
     }
@@ -63,9 +65,9 @@ export class FactCheckPopup {
       left = viewportWidth - popupWidth - 8; // Max right padding
     }
 
-    // If popup would go below viewport, position above indicator
-    if (top + 300 > viewportHeight) {
-      top = rect.top - 300 - 8;
+    // If popup would go below viewport, position above indicator instead
+    if (top + popupHeight > viewportHeight - 8) {
+      top = rect.top - popupHeight - 8;
       if (top < 8) {
         top = 8; // Fallback to top of viewport
       }

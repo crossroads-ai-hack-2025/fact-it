@@ -9,9 +9,13 @@ import {
   GetDomainSelectorsMessage,
   CheckClaimMessage,
   ClaimResultMessage,
+  GetSettingsMessage,
+  ExtensionSettings,
+  STORAGE_KEYS,
 } from '@/shared/types';
 import { EXTENSION_NAME, OBSERVER_CONFIG } from '@/shared/constants';
 import { FactCheckIndicator } from '@/content/ui/indicator';
+import { CheckButton } from '@/content/ui/check-button';
 
 console.info(`${EXTENSION_NAME}: Universal content script loaded`);
 
@@ -20,9 +24,10 @@ let currentSelectors: PlatformSelectors | null = null;
 let observer: MutationObserver | null = null;
 const processedElements = new WeakSet<Element>();
 const currentDomain = window.location.hostname.replace(/^www\./, '');
-const indicators = new Map<string, FactCheckIndicator>();
+const indicators = new Map<string, FactCheckIndicator | CheckButton>();
 let mutationQueue: MutationRecord[] = []; // Queue for batching mutations
 let processingDebounceTimer: number | null = null;
+let autoCheckEnabled = true; // Default to true
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -49,10 +54,78 @@ async function init(): Promise<void> {
     console.info(`${EXTENSION_NAME}: Connected to service worker:`, response);
   });
 
+  // Load settings
+  await loadSettings();
+
+  // Listen for settings changes
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes[STORAGE_KEYS.SETTINGS]) {
+      const newSettings = changes[STORAGE_KEYS.SETTINGS].newValue as ExtensionSettings;
+      handleSettingsChange(newSettings);
+    }
+  });
+
   // Wait for page to be more fully loaded
   setTimeout(async () => {
     await initializeSelectors();
   }, 2000);
+}
+
+/**
+ * Load settings from storage
+ */
+async function loadSettings(): Promise<void> {
+  try {
+    const message: GetSettingsMessage = {
+      type: MessageType.GET_SETTINGS,
+    };
+
+    chrome.runtime.sendMessage(message, (response: { settings: ExtensionSettings }) => {
+      if (chrome.runtime.lastError) {
+        console.error(
+          `${EXTENSION_NAME}: Failed to load settings:`,
+          chrome.runtime.lastError
+        );
+        return;
+      }
+
+      if (response.settings) {
+        autoCheckEnabled = response.settings.autoCheckEnabled ?? true;
+        console.info(
+          `${EXTENSION_NAME}: Settings loaded - Auto-check: ${autoCheckEnabled ? 'ON' : 'OFF'}`
+        );
+      }
+    });
+  } catch (error) {
+    console.error(`${EXTENSION_NAME}: Error loading settings:`, error);
+  }
+}
+
+/**
+ * Handle settings changes
+ */
+function handleSettingsChange(newSettings: ExtensionSettings): void {
+  const wasAutoCheckEnabled = autoCheckEnabled;
+  autoCheckEnabled = newSettings.autoCheckEnabled ?? true;
+
+  console.info(
+    `${EXTENSION_NAME}: Settings updated - Auto-check: ${autoCheckEnabled ? 'ON' : 'OFF'}`
+  );
+
+  // If auto-check was toggled on, we don't need to do anything special
+  // New posts will be auto-checked, existing posts already have results
+  if (!wasAutoCheckEnabled && autoCheckEnabled) {
+    console.info(
+      `${EXTENSION_NAME}: Auto-check enabled - new posts will be checked automatically`
+    );
+  }
+
+  // If auto-check was toggled off, existing results stay but new posts will show buttons
+  if (wasAutoCheckEnabled && !autoCheckEnabled) {
+    console.info(
+      `${EXTENSION_NAME}: Auto-check disabled - new posts will require manual checking`
+    );
+  }
 }
 
 /**
@@ -339,19 +412,28 @@ function processPost(postElement: Element, selectors: PlatformSelectors, debugIn
 
   // Log detection
   console.info(
-    `${EXTENSION_NAME}: ${debugPrefix} ✅ Post detected and queued for fact-checking!`,
+    `${EXTENSION_NAME}: ${debugPrefix} ✅ Post detected!`,
     '\n  ID:', elementId,
     '\n  Text preview:', text.substring(0, 100) + (text.length > 100 ? '...' : ''),
     '\n  Text length:', text.length,
-    '\n  Element:', postElement.tagName
+    '\n  Element:', postElement.tagName,
+    '\n  Auto-check:', autoCheckEnabled ? 'ON' : 'OFF'
   );
 
-  // Create and show indicator
-  const indicator = new FactCheckIndicator(postElement, elementId);
-  indicators.set(elementId, indicator);
-
-  // Send to background for checking
-  sendToBackground(text, elementId);
+  if (autoCheckEnabled) {
+    // Auto-check mode: Create loading indicator and start fact-checking immediately
+    const indicator = new FactCheckIndicator(postElement, elementId);
+    indicators.set(elementId, indicator);
+    sendToBackground(text, elementId);
+  } else {
+    // Manual mode: Create check button and wait for user to click
+    const button = new CheckButton(postElement, elementId);
+    button.onCheck(() => {
+      // When user clicks, start fact-checking
+      sendToBackground(text, elementId);
+    });
+    indicators.set(elementId, button);
+  }
 }
 
 /**
@@ -397,10 +479,37 @@ function sendToBackground(text: string, elementId: string): void {
       `${response.payload.verdict} (${response.payload.confidence}% confidence)`
     );
 
-    // Update indicator with result
-    const indicator = indicators.get(elementId);
-    if (indicator) {
+    // Get the current indicator (might be CheckButton or FactCheckIndicator)
+    const currentIndicator = indicators.get(elementId);
+    if (!currentIndicator) {
+      console.warn(`${EXTENSION_NAME}: No indicator found for ${elementId}`);
+      return;
+    }
+
+    // If it's a CheckButton (manual mode), replace it with a FactCheckIndicator
+    if (currentIndicator instanceof CheckButton) {
+      // Get the parent element before removing the button
+      const parentElement = currentIndicator.parentElement;
+
+      // Remove the check button
+      currentIndicator.remove();
+
+      // Create a new indicator showing the result
+      const indicator = new FactCheckIndicator(parentElement, elementId);
+      indicators.set(elementId, indicator);
+
+      // Show the result
       indicator.showResult({
+        verdict: response.payload.verdict,
+        confidence: response.payload.confidence,
+        explanation: response.payload.explanation,
+        sources: response.payload.sources,
+        providerResults: response.payload.providerResults,
+        consensus: response.payload.consensus,
+      });
+    } else {
+      // It's already a FactCheckIndicator, just show the result
+      currentIndicator.showResult({
         verdict: response.payload.verdict,
         confidence: response.payload.confidence,
         explanation: response.payload.explanation,

@@ -28,9 +28,9 @@ console.info(`${EXTENSION_NAME}: Facebook content script loaded`);
 // Configuration for Facebook-specific behavior
 const FACEBOOK_CONFIG = {
   // Scroll-based activation settings
-  minScrollEvents: 3, // Minimum scroll events before activation
-  scrollTimeWindow: 10000, // Time window to collect scroll events (10 seconds)
-  scrollThreshold: 200, // Minimum pixels scrolled per event to count
+  minScrollEvents: 2, // Minimum scroll events before activation (reduced from 3)
+  scrollTimeWindow: 60000, // Time window to collect scroll events (60 seconds - much more lenient)
+  scrollThreshold: 100, // Minimum pixels scrolled per event to count (reduced from 200)
 
   // Selector discovery settings
   minPostsForLearning: 3, // Minimum posts to find for validation
@@ -94,7 +94,7 @@ async function init(): Promise<void> {
 
   console.info(
     `${EXTENSION_NAME}: [Facebook] Waiting for user to scroll... ` +
-    `(need ${FACEBOOK_CONFIG.minScrollEvents} scroll events within ${FACEBOOK_CONFIG.scrollTimeWindow / 1000}s)`
+    `(need ${FACEBOOK_CONFIG.minScrollEvents} scroll events within ${FACEBOOK_CONFIG.scrollTimeWindow / 1000}s - very lenient!)`
   );
 }
 

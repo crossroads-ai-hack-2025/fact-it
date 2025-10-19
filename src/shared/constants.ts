@@ -14,10 +14,30 @@ export const SELECTORS = {
     fallback: 'div[lang]',
   },
   linkedin: {
-    postContainer:
-      'div[role="article"], article[role="article"], div[data-urn^="urn:li:activity"], div[data-id^="urn:li:activity"]',
-    textContent:
-      'div.update-components-text span[dir], div.feed-shared-update-v2__description, div[role="article"] span.break-words',
+    // LinkedIn frequently tweaks feed markup. We combine several resilient selectors that
+    // target both legacy and new activity containers so the observer keeps finding posts.
+    postContainer: [
+      'article[data-urn^="urn:li:activity"]',
+      'article[data-id^="urn:li:activity"]',
+      'div[data-urn^="urn:li:activity"]',
+      'div[data-id^="urn:li:activity"]',
+      'div[data-view-name^="feed/feed-update"]',
+      'div.feed-shared-update-v2',
+      'div.feed-shared-update-v3',
+      'div.update-components-card',
+      'div.feed-update',
+    ].join(', '),
+    textContent: [
+      'div.update-components-text span[dir]',
+      'div.update-components-text-core__text span[dir]',
+      'div.feed-shared-inline-show-more-text span[dir]',
+      'div.feed-shared-update-v2__description span[dir], div.feed-shared-update-v2__description',
+      'div.feed-shared-update-v3__description span[dir], div.feed-shared-update-v3__description',
+      'div[data-view-name^="feed/feed-update"] span.break-words',
+      'div[role="article"] span.break-words',
+      'span[data-test-feed-shared-update-text]',
+      'span[dir]'
+    ].join(', '),
     author: 'a.update-components-actor__meta-link',
     timestamp: 'span.update-components-actor__sub-description',
   },

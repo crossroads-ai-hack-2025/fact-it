@@ -30,6 +30,26 @@ Fact-It: [Facebook] 🔍 Starting selector discovery...
 
 **Other platforms (Twitter, LinkedIn) work reliably without these issues.**
 
+## 🔑 API Keys Required
+
+**You need at least one AI provider API key to use this extension:**
+
+- **Minimum**: 1 API key (OpenAI, Anthropic Claude, or Perplexity)
+- **Recommended**: 2 or more API keys to consolidate answers from different providers for better accuracy and consensus
+
+**Setting up API keys:**
+1. Click the extension icon in Chrome toolbar
+2. Enter your API key(s) in the popup settings
+3. Enable the providers you want to use
+4. Click "Save Settings"
+
+**Note**: This setup process could be streamlined in future versions.
+
+**Supported providers:**
+- **OpenAI** (GPT-4o) - [Get API key](https://platform.openai.com/api-keys)
+- **Anthropic** (Claude 3.5 Sonnet) - [Get API key](https://console.anthropic.com/)
+- **Perplexity** (Sonar Pro) - [Get API key](https://www.perplexity.ai/settings/api)
+
 ## 🚀 Quick Start
 
 ### Prerequisites

@@ -4,6 +4,32 @@
 
 A Chrome extension that uses AI to detect and verify factual claims in social media posts as you browse. Built with TypeScript, Vite, and Manifest V3.
 
+## ⚠️ Important: Facebook Support (Known Issues)
+
+**Facebook requires special handling due to dynamic selectors:**
+
+- **You must scroll** on Facebook for the extension to activate (scroll fast/for a while after page loads)
+- **Selector discovery is not always successful** - Facebook's DOM structure changes frequently
+- **This is a known issue that needs to be fixed** in future versions
+- **To debug**: Open Chrome DevTools (F12) → Console tab to check logs
+
+**When you scroll, you should see in the console:**
+```
+Fact-It: [Facebook] User started scrolling, tracking...
+Fact-It: [Facebook] 🎉 Scroll detected (XXXpx) - count: 1/1
+Fact-It: [Facebook] ✅ Activation threshold reached! Starting selector discovery...
+Fact-It: [Facebook] 🚀 Extension activated!
+Fact-It: [Facebook] 🔍 Starting selector discovery...
+```
+
+**Then either:**
+- ✅ **Success**: `Fact-It: [Facebook] ✅ Found valid selector with XX% confidence`
+- ❌ **Failure**: `Fact-It: [Facebook] ❌ Failed to discover selectors`
+
+- If selectors fail, try refreshing the page and scrolling again
+
+**Other platforms (Twitter, LinkedIn) work reliably without these issues.**
+
 ## 🚀 Quick Start
 
 ### Prerequisites

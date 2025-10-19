@@ -22,7 +22,21 @@
   "content_scripts": [
     {
       "matches": [
+        "*://*.facebook.com/*",
+        "*://facebook.com/*"
+      ],
+      "js": [
+        "src/content/facebook-content.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
         "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://*.facebook.com/*",
+        "*://facebook.com/*"
       ],
       "js": [
         "src/content/universal-content.ts"

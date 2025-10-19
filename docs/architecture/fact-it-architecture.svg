@@ -1,0 +1,172 @@
+<svg width="1200" height="940" viewBox="0 0 1200 940" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fbff" />
+      <stop offset="100%" stop-color="#eef3f9" />
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#0d2538" />
+    </marker>
+    <marker id="arrowLight" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto">
+      <path d="M0,0 L12,6 L0,12 z" fill="#5c2e7e" />
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="940" fill="url(#bgGradient)" />
+  <text x="600" y="55" text-anchor="middle" font-size="30" font-weight="700" fill="#0d2538">Fact-It Extension Architecture</text>
+  <text x="600" y="88" text-anchor="middle" font-size="18" fill="#1f3d5b">Real-time multi-provider fact checking in a Chrome extension</text>
+
+  <!-- Content Scripts -->
+  <rect x="80" y="120" width="360" height="160" rx="14" fill="#f2f5f9" stroke="#1f3d5b" stroke-width="2" />
+  <text x="260" y="160" text-anchor="middle" font-size="18" font-weight="600" fill="#0d2538">Content Scripts</text>
+  <text x="100" y="188" font-size="14" fill="#1f3d5b">
+    <tspan x="100" dy="0">• Twitter observer &amp; claim extraction (src/content/twitter-content.ts)</tspan>
+    <tspan x="100" dy="22">• Sends CHECK_CLAIM requests to background worker</tspan>
+    <tspan x="100" dy="22">• Injects inline debug indicators on detected posts</tspan>
+  </text>
+
+  <!-- Popup UI -->
+  <rect x="760" y="120" width="360" height="160" rx="14" fill="#f2f5f9" stroke="#1f3d5b" stroke-width="2" />
+  <text x="940" y="160" text-anchor="middle" font-size="18" font-weight="600" fill="#0d2538">Popup &amp; Settings UI</text>
+  <text x="780" y="188" font-size="14" fill="#1f3d5b">
+    <tspan x="780" dy="0">• Provider configuration &amp; API key validation (src/popup/popup.ts)</tspan>
+    <tspan x="780" dy="22">• Cache &amp; selector management dashboards</tspan>
+    <tspan x="780" dy="22">• Controls auto-check toggle &amp; confidence threshold</tspan>
+  </text>
+
+  <!-- Background Service Worker container -->
+  <rect x="60" y="320" width="1080" height="360" rx="18" fill="#ffffff" stroke="#0d2538" stroke-width="3" />
+  <text x="600" y="310" text-anchor="middle" font-size="20" font-weight="700" fill="#0d2538">Background Service Worker (src/background/service-worker.ts)</text>
+
+  <!-- Message Router -->
+  <rect x="100" y="360" width="260" height="140" rx="12" fill="#f6f8fc" stroke="#27496d" stroke-width="2" />
+  <text x="230" y="392" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">Message Router</text>
+  <text x="120" y="420" font-size="13" fill="#1f3d5b">
+    <tspan x="120" dy="0">• Handles PING, CHECK_CLAIM, settings, selector RPCs</tspan>
+    <tspan x="120" dy="20">• Dispatches fact-check requests to orchestrator</tspan>
+    <tspan x="120" dy="20">• Serializes responses back to UI layers</tspan>
+  </text>
+
+  <!-- Domain Selector Storage -->
+  <rect x="100" y="520" width="260" height="140" rx="12" fill="#f6f8fc" stroke="#27496d" stroke-width="2" />
+  <text x="230" y="552" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">Domain Selector Storage</text>
+  <text x="120" y="580" font-size="13" fill="#1f3d5b">
+    <tspan x="120" dy="0">• Maintains per-domain CSS selectors</tspan>
+    <tspan x="120" dy="20">• CRUD operations exposed to popup UI</tspan>
+    <tspan x="120" dy="20">• Persists definitions in chrome.storage.local</tspan>
+  </text>
+
+  <!-- Orchestrator -->
+  <rect x="420" y="360" width="360" height="240" rx="12" fill="#f0f7ff" stroke="#123c69" stroke-width="2" />
+  <text x="600" y="392" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">FactCheckOrchestrator (src/background/ai/orchestrator.ts)</text>
+  <text x="440" y="420" font-size="13" fill="#1f3d5b">
+    <tspan x="440" dy="0">• Reads enabled providers &amp; API keys from storage</tspan>
+    <tspan x="440" dy="20">• Stage 1: parallel claim detection across providers</tspan>
+    <tspan x="440" dy="20">• Stage 2: multi-provider verification with web search</tspan>
+    <tspan x="440" dy="20">• Aggregates verdicts, consensus, explanations, sources</tspan>
+    <tspan x="440" dy="20">• Persists results via fact-check cache</tspan>
+  </text>
+
+  <!-- Cache -->
+  <rect x="820" y="480" width="260" height="140" rx="12" fill="#f6f8fc" stroke="#27496d" stroke-width="2" />
+  <text x="950" y="512" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">Fact-Check Cache</text>
+  <text x="840" y="540" font-size="13" fill="#1f3d5b">
+    <tspan x="840" dy="0">• SHA-256 hashes normalized text</tspan>
+    <tspan x="840" dy="20">• TTL + LRU eviction to stay within storage limits</tspan>
+    <tspan x="840" dy="20">• Stores AggregatedResult snapshots</tspan>
+  </text>
+
+  <!-- Chrome Storage -->
+  <rect x="820" y="340" width="260" height="120" rx="12" fill="#f6f8fc" stroke="#27496d" stroke-width="2" />
+  <text x="950" y="372" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">chrome.storage.local</text>
+  <text x="840" y="400" font-size="13" fill="#1f3d5b">
+    <tspan x="840" dy="0">• Provider enablement &amp; API keys</tspan>
+    <tspan x="840" dy="20">• Cached fact-check verdicts</tspan>
+    <tspan x="840" dy="20">• Domain selector metadata</tspan>
+  </text>
+
+  <!-- Provider boxes -->
+  <rect x="160" y="700" width="250" height="140" rx="12" fill="#f2f5f9" stroke="#1f3d5b" stroke-width="2" />
+  <text x="285" y="732" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">OpenAIProvider</text>
+  <text x="180" y="760" font-size="13" fill="#1f3d5b">
+    <tspan x="180" dy="0">• gpt-4o-mini for detection</tspan>
+    <tspan x="180" dy="20">• gpt-4o + web_search tool for verification</tspan>
+    <tspan x="180" dy="20">• Implements AIProvider interface</tspan>
+  </text>
+
+  <rect x="475" y="700" width="250" height="140" rx="12" fill="#f2f5f9" stroke="#1f3d5b" stroke-width="2" />
+  <text x="600" y="732" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">AnthropicProvider</text>
+  <text x="495" y="760" font-size="13" fill="#1f3d5b">
+    <tspan x="495" dy="0">• claude-3-5-haiku for detection</tspan>
+    <tspan x="495" dy="20">• claude-3-5-sonnet with Brave web search</tspan>
+    <tspan x="495" dy="20">• Structured verdicts via Verification schema</tspan>
+  </text>
+
+  <rect x="790" y="700" width="250" height="140" rx="12" fill="#f2f5f9" stroke="#1f3d5b" stroke-width="2" />
+  <text x="915" y="732" text-anchor="middle" font-size="16" font-weight="600" fill="#0d2538">PerplexityProvider</text>
+  <text x="810" y="760" font-size="13" fill="#1f3d5b">
+    <tspan x="810" dy="0">• Sonar models with native citations</tspan>
+    <tspan x="810" dy="20">• Single-step detect + verify workflow</tspan>
+    <tspan x="810" dy="20">• Uses provider registry adapters</tspan>
+  </text>
+
+  <!-- External APIs -->
+  <rect x="430" y="880" width="340" height="60" rx="30" fill="#ede7f6" stroke="#5c2e7e" stroke-width="2" />
+  <text x="600" y="912" text-anchor="middle" font-size="16" font-weight="700" fill="#5c2e7e">External AI APIs &amp; Web Search</text>
+  <text x="600" y="932" text-anchor="middle" font-size="13" fill="#5c2e7e">OpenAI • Anthropic • Perplexity</text>
+
+  <!-- Arrows from UI layers to background -->
+  <line x1="260" y1="280" x2="230" y2="320" stroke="#0d2538" stroke-width="2.2" marker-end="url(#arrow)" />
+  <text x="220" y="300" font-size="13" fill="#0d2538">CHECK_CLAIM, selector queries</text>
+
+  <line x1="950" y1="280" x2="930" y2="320" stroke="#0d2538" stroke-width="2.2" marker-end="url(#arrow)" />
+  <text x="940" y="300" font-size="13" fill="#0d2538" text-anchor="middle">Settings &amp; diagnostics RPC</text>
+
+  <!-- Return arrows to UI -->
+  <line x1="230" y1="320" x2="250" y2="280" stroke="#0d2538" stroke-width="2.2" marker-end="url(#arrow)" />
+  <text x="250" y="298" font-size="13" fill="#0d2538">Fact-check verdicts</text>
+
+  <line x1="930" y1="320" x2="960" y2="280" stroke="#0d2538" stroke-width="2.2" marker-end="url(#arrow)" />
+  <text x="965" y="298" font-size="13" fill="#0d2538">Status, stats, updates</text>
+
+  <!-- Internal arrows -->
+  <line x1="360" y1="430" x2="420" y2="430" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="390" y="410" font-size="12" fill="#0d2538">checkClaim()</text>
+
+  <line x1="420" y1="480" x2="360" y2="480" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="390" y="500" font-size="12" fill="#0d2538">Provider summaries</text>
+
+  <line x1="360" y1="580" x2="420" y2="560" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="390" y="540" font-size="12" fill="#0d2538">Selector CRUD</text>
+
+  <line x1="780" y1="520" x2="820" y2="520" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="800" y="500" font-size="12" fill="#0d2538">Cache hits/misses</text>
+
+  <line x1="950" y1="460" x2="950" y2="420" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="970" y="440" font-size="12" fill="#0d2538">Persist entries</text>
+
+  <line x1="780" y1="380" x2="820" y2="380" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="800" y="360" font-size="12" fill="#0d2538">Load provider configs</text>
+
+  <line x1="820" y1="420" x2="780" y2="400" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="800" y="422" font-size="12" fill="#0d2538">Persist updates</text>
+
+  <!-- Orchestrator to providers -->
+  <line x1="540" y1="600" x2="420" y2="700" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="470" y="640" font-size="12" fill="#0d2538">Stage 1/2 prompts</text>
+
+  <line x1="600" y1="600" x2="600" y2="700" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="620" y="650" font-size="12" fill="#0d2538">Provider adapters</text>
+
+  <line x1="660" y1="600" x2="780" y2="700" stroke="#0d2538" stroke-width="2" marker-end="url(#arrow)" />
+  <text x="730" y="640" font-size="12" fill="#0d2538">Structured responses</text>
+
+  <!-- Providers to external APIs -->
+  <line x1="285" y1="840" x2="460" y2="860" stroke="#5c2e7e" stroke-width="2" marker-end="url(#arrowLight)" />
+  <text x="360" y="848" font-size="12" fill="#5c2e7e">REST / streaming</text>
+
+  <line x1="600" y1="840" x2="600" y2="860" stroke="#5c2e7e" stroke-width="2" marker-end="url(#arrowLight)" />
+
+  <line x1="915" y1="840" x2="740" y2="860" stroke="#5c2e7e" stroke-width="2" marker-end="url(#arrowLight)" />
+
+</svg>

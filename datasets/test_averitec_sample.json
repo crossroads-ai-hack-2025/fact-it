@@ -1,0 +1,83 @@
+[
+  {
+    "claim_id": 1,
+    "claim": "Joe Biden signed 50 executive orders in his first week as president.",
+    "label": "Refuted",
+    "justification": "While Biden did sign a significant number of executive orders in his first week, the actual count was 17, not 50. This was still a record number for a president's first week.",
+    "claim_date": "2021-01-27",
+    "speaker": "Anonymous social media user",
+    "questions": [
+      {
+        "question": "How many executive orders did Biden sign in his first week?",
+        "answers": [
+          {
+            "answer": "17 executive orders",
+            "answer_type": "Extractive",
+            "source_url": "https://www.whitehouse.gov/briefing-room/presidential-actions/",
+            "source_medium": "Web text"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "claim_id": 2,
+    "claim": "The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion.",
+    "label": "Supported",
+    "justification": "This claim is accurate. When exposed to heat, the iron structure of the Eiffel Tower expands. In summer, when temperatures can reach up to 40°C, the tower can grow by approximately 15 centimeters.",
+    "claim_date": "2023-07-15",
+    "speaker": "Science educator",
+    "questions": [
+      {
+        "question": "Does the Eiffel Tower expand in summer?",
+        "answers": [
+          {
+            "answer": "Yes, the tower can grow by about 15 cm in summer due to thermal expansion of the iron structure.",
+            "answer_type": "Abstractive",
+            "source_url": "https://www.toureiffel.paris/en/the-monument/eiffel-tower-and-science",
+            "source_medium": "Web text"
+          },
+          {
+            "answer": "The coefficient of thermal expansion for iron is approximately 12 × 10^-6 per degree Celsius.",
+            "answer_type": "Extractive",
+            "source_url": "https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html",
+            "source_medium": "Web text"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "claim_id": 3,
+    "claim": "Drinking coffee reduces the risk of type 2 diabetes by exactly 30%.",
+    "label": "Conflicting Evidence/Cherry-picking",
+    "justification": "Multiple studies have shown that coffee consumption is associated with reduced diabetes risk, but the exact percentage varies widely across studies (ranging from 20-35%). Claiming an exact 30% reduction cherry-picks from specific studies and doesn't represent the full evidence base.",
+    "claim_date": "2023-11-20",
+    "speaker": "Health blogger",
+    "questions": [
+      {
+        "question": "What does research say about coffee and diabetes risk?",
+        "answers": [
+          {
+            "answer": "A 2014 meta-analysis found coffee consumption was associated with a 30% lower risk.",
+            "answer_type": "Extractive",
+            "source_url": "https://pubmed.ncbi.nlm.nih.gov/24458103/",
+            "source_medium": "Web text"
+          },
+          {
+            "answer": "A 2018 study reported a 20% reduction in risk per cup consumed daily.",
+            "answer_type": "Extractive",
+            "source_url": "https://pubmed.ncbi.nlm.nih.gov/29276945/",
+            "source_medium": "Web text"
+          },
+          {
+            "answer": "Results vary significantly across studies depending on population, coffee type, and consumption patterns.",
+            "answer_type": "Abstractive",
+            "source_url": "https://www.diabetes.org/healthy-living/recipes-nutrition/eating-well/coffee-and-diabetes",
+            "source_medium": "Web text"
+          }
+        ]
+      }
+    ]
+  }
+]

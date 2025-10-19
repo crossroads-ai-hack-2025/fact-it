@@ -1,0 +1,59 @@
+[
+  {
+    "id": "averitec_1",
+    "claim": "Joe Biden signed 50 executive orders in his first week as president.",
+    "verdict": "false",
+    "confidence": 0.85,
+    "sources": [
+      {
+        "url": "https://www.whitehouse.gov/briefing-room/presidential-actions/",
+        "title": "Presidential Actions - whitehouse.gov",
+        "reliabilityScore": 0.8,
+        "excerpt": "17 executive orders",
+        "accessDate": "2025-10-19"
+      }
+    ],
+    "explanation": "While Biden did sign a significant number of executive orders in his first week, the actual count was 17, not 50. This was still a record number for a president's first week.",
+    "reasoning": "",
+    "difficulty": "easy",
+    "topic": "politics",
+    "annotator": "averitec-dataset",
+    "metadata": {
+      "original_label": "Refuted",
+      "claim_date": "2021-01-27",
+      "speaker": "Anonymous social media user"
+    }
+  },
+  {
+    "id": "averitec_2",
+    "claim": "The Eiffel Tower can be 15 cm taller during the summer due to thermal expansion.",
+    "verdict": "true",
+    "confidence": 0.85,
+    "sources": [
+      {
+        "url": "https://www.toureiffel.paris/en/the-monument/eiffel-tower-and-science",
+        "title": "Eiffel Tower And Science - toureiffel.paris",
+        "reliabilityScore": 0.75,
+        "excerpt": "Yes, the tower can grow by about 15 cm in summer due to thermal expansion of the iron structure.",
+        "accessDate": "2025-10-19"
+      },
+      {
+        "url": "https://www.engineeringtoolbox.com/linear-expansion-coefficients-d_95.html",
+        "title": "Linear Expansion Coefficients D 95 - engineeringtoolbox.com",
+        "reliabilityScore": 0.8,
+        "excerpt": "The coefficient of thermal expansion for iron is approximately 12 × 10^-6 per degree Celsius.",
+        "accessDate": "2025-10-19"
+      }
+    ],
+    "explanation": "This claim is accurate. When exposed to heat, the iron structure of the Eiffel Tower expands. In summer, when temperatures can reach up to 40°C, the tower can grow by approximately 15 centimeters.",
+    "reasoning": "",
+    "difficulty": "easy",
+    "topic": "other",
+    "annotator": "averitec-dataset",
+    "metadata": {
+      "original_label": "Supported",
+      "claim_date": "2023-07-15",
+      "speaker": "Science educator"
+    }
+  }
+]

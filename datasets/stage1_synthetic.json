@@ -1,0 +1,116 @@
+[
+  {
+    "id": "gen_001",
+    "text": "Just read that whales can live for over 200 years! Mind blown 🌊🐋 #oceanlife",
+    "platform": "twitter",
+    "hasClaim": true,
+    "claims": [
+      "Whales can live for over 200 years"
+    ],
+    "confidence": 0.7,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_002",
+    "text": "Elon Musk wants to put humans on Mars by 2026. Ambitious much? 🚀",
+    "platform": "reddit",
+    "hasClaim": true,
+    "claims": [
+      "Elon Musk wants to put humans on Mars by 2026"
+    ],
+    "confidence": 0.5,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_003",
+    "text": "I think the new season of Stranger Things is the best one yet! #Netflix",
+    "platform": "facebook",
+    "hasClaim": false,
+    "claims": [],
+    "confidence": 0,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_004",
+    "text": "Did you know that honey never spoils? They found pots of it in ancient Egyptian tombs! 🍯",
+    "platform": "instagram",
+    "hasClaim": true,
+    "claims": [
+      "Honey never spoils",
+      "Honey was found in ancient Egyptian tombs"
+    ],
+    "confidence": 0.8,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_005",
+    "text": "This new pizza place down the street hits different. Who wants to join me? 🍕",
+    "platform": "tiktok",
+    "hasClaim": false,
+    "claims": [],
+    "confidence": 0,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_006",
+    "text": "I saw a post saying 80% of the ocean is still unexplored. True? 🤔 #marinebiology",
+    "platform": "twitter",
+    "hasClaim": true,
+    "claims": [
+      "80% of the ocean is unexplored"
+    ],
+    "confidence": 0.6,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_007",
+    "text": "What’s up with people putting pineapple on pizza? Just why? 😂🍍🍕",
+    "platform": "reddit",
+    "hasClaim": false,
+    "claims": [],
+    "confidence": 0,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_008",
+    "text": "Apparently, the Eiffel Tower can be 15 cm taller during the summer due to thermal expansion. Science is wild! 🇫🇷",
+    "platform": "facebook",
+    "hasClaim": true,
+    "claims": [
+      "The Eiffel Tower can be 15 cm taller during the summer"
+    ],
+    "confidence": 0.7,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_009",
+    "text": "I’ve always felt that autumn has the best vibes. 🍁🍂 #FallFeels",
+    "platform": "instagram",
+    "hasClaim": false,
+    "claims": [],
+    "confidence": 0,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  },
+  {
+    "id": "gen_010",
+    "text": "Cats and dogs can see in the dark better than humans because they have more rod cells in their eyes. 🐾",
+    "platform": "tiktok",
+    "hasClaim": true,
+    "claims": [
+      "Cats and dogs have more rod cells in their eyes",
+      "Cats and dogs can see in the dark better than humans"
+    ],
+    "confidence": 0.9,
+    "annotator": "gpt-4o-synthetic",
+    "metadata": {}
+  }
+]

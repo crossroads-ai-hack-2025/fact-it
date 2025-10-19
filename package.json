@@ -13,7 +13,14 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,html}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,html}\"",
     "type-check": "tsc --noEmit",
-    "eval:example": "tsx src/evaluation/examples/example-evaluation.ts"
+    "eval:example": "tsx src/evaluation/examples/example-evaluation.ts",
+    "eval:production": "tsx src/evaluation/scripts/evaluate-production-prompts.ts",
+    "eval:compare": "tsx src/evaluation/scripts/compare-prompts.ts",
+    "eval:annotate": "tsx src/evaluation/scripts/quick-annotate.ts",
+    "eval:generate": "tsx src/evaluation/scripts/generate-synthetic-dataset.ts",
+    "eval:import": "tsx src/evaluation/scripts/import-external-dataset.ts",
+    "eval:import-averitec": "tsx src/evaluation/scripts/import-external-dataset.ts averitec",
+    "eval:import-fever": "tsx src/evaluation/scripts/import-external-dataset.ts fever"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.2.0",

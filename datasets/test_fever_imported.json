@@ -1,0 +1,66 @@
+[
+  {
+    "id": "fever_1",
+    "claim": "The Eiffel Tower is located in Paris, France.",
+    "verdict": "true",
+    "confidence": 0.9,
+    "sources": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Eiffel_Tower",
+        "title": "Eiffel_Tower - Wikipedia",
+        "reliabilityScore": 0.85,
+        "excerpt": "Sentence 0 from Eiffel_Tower",
+        "accessDate": "2025-10-19"
+      }
+    ],
+    "explanation": "This claim is supported by evidence from 1 Wikipedia source(s).",
+    "reasoning": "Evidence-based verification using Wikipedia sources",
+    "difficulty": "easy",
+    "topic": "other",
+    "annotator": "fever-dataset",
+    "metadata": {
+      "original_label": "SUPPORTS",
+      "num_evidence_sets": 1
+    }
+  },
+  {
+    "id": "fever_2",
+    "claim": "The Great Wall of China is visible from the Moon with the naked eye.",
+    "verdict": "false",
+    "confidence": 0.9,
+    "sources": [
+      {
+        "url": "https://en.wikipedia.org/wiki/Great_Wall_of_China",
+        "title": "Great_Wall_of_China - Wikipedia",
+        "reliabilityScore": 0.85,
+        "excerpt": "Sentence 5 from Great_Wall_of_China",
+        "accessDate": "2025-10-19"
+      }
+    ],
+    "explanation": "This claim is refuted by evidence from 1 Wikipedia source(s).",
+    "reasoning": "Evidence-based verification using Wikipedia sources",
+    "difficulty": "easy",
+    "topic": "other",
+    "annotator": "fever-dataset",
+    "metadata": {
+      "original_label": "REFUTES",
+      "num_evidence_sets": 1
+    }
+  },
+  {
+    "id": "fever_3",
+    "claim": "The inventor of the telephone preferred eating breakfast at midnight.",
+    "verdict": "unknown",
+    "confidence": 0.7,
+    "sources": [],
+    "explanation": "There is not enough information available to verify this claim.",
+    "reasoning": "Evidence-based verification using Wikipedia sources",
+    "difficulty": "easy",
+    "topic": "other",
+    "annotator": "fever-dataset",
+    "metadata": {
+      "original_label": "NOT ENOUGH INFO",
+      "num_evidence_sets": 0
+    }
+  }
+]

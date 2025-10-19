@@ -4,7 +4,7 @@
  */
 
 import { MessageType, ExtensionSettings, ProviderSettings } from '@/shared/types';
-import { EXTENSION_NAME } from '@/shared/constants';
+import { EXTENSION_NAME, EXTENSION_VERSION } from '@/shared/constants';
 import { providerRegistry, ProviderId } from '@/background/ai/providers/registry';
 
 console.info(`${EXTENSION_NAME}: Popup loaded`);
@@ -71,6 +71,12 @@ const selectorFeedback = document.getElementById('selector-feedback') as HTMLDiv
 init();
 
 async function init(): Promise<void> {
+  // Set version footer
+  const versionFooter = document.getElementById('version-footer');
+  if (versionFooter) {
+    versionFooter.textContent = `Fact-It v${EXTENSION_VERSION}`;
+  }
+
   // Check service worker status
   await checkServiceWorkerStatus();
 

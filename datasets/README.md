@@ -298,6 +298,6 @@ Always cite the original papers when publishing results:
 ## Questions?
 
 See:
-- [Evaluation Framework Quick Start](../src/evaluation/QUICK_START.md)
-- [Evaluation Framework README](../src/evaluation/README.md)
-- [Design Document](../docs/2025-10-18-evaluation-framework-design.md)
+- [Evaluation Framework README](../src/evaluation/README.md) - Comprehensive guide with quick start, usage, and examples
+- [External Datasets Integration](../docs/EXTERNAL_DATASETS_INTEGRATION.md) - Technical details on AVeriTeC/FEVER adapters
+- [Design Document](../docs/2025-10-18-evaluation-framework-design.md) - Original design specification

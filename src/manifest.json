@@ -15,8 +15,14 @@
   "host_permissions": [
     "<all_urls>"
   ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "fact-it@example.com",
+      "strict_min_version": "121.0"
+    }
+  },
   "background": {
-    "service_worker": "src/background/service-worker.ts",
+    "scripts": ["src/background/service-worker.ts"],
     "type": "module"
   },
   "content_scripts": [

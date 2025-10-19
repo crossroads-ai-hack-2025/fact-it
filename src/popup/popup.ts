@@ -67,6 +67,11 @@ const selectorListDiv = document.getElementById('selector-list') as HTMLDivEleme
 const addDomainButton = document.getElementById('add-domain-btn') as HTMLButtonElement;
 const selectorFeedback = document.getElementById('selector-feedback') as HTMLDivElement;
 
+// DOM elements - credits
+const openaiCreditStatus = document.getElementById('openai-credit-status') as HTMLSpanElement;
+const anthropicCreditStatus = document.getElementById('anthropic-credit-status') as HTMLSpanElement;
+const perplexityCreditStatus = document.getElementById('perplexity-credit-status') as HTMLSpanElement;
+
 // Initialize popup
 init();
 
@@ -91,6 +96,9 @@ async function init(): Promise<void> {
 
   // Load and render selectors
   await loadAndRenderSelectors();
+
+  // Update credit status indicators
+  updateCreditStatusIndicators();
 
   // Setup event listeners
   setupEventListeners();
@@ -336,6 +344,8 @@ async function saveSettings(): Promise<void> {
             `Settings saved! ${enabledProviders.length} provider(s) enabled: ${enabledProviders.map(id => providerRegistry[id].displayName).join(', ')}`,
             'success'
           );
+          // Update credit status indicators after saving
+          updateCreditStatusIndicators();
         } else {
           showFeedback('Failed to save settings', 'error');
         }
@@ -675,4 +685,33 @@ function showSelectorFeedback(message: string, type: 'success' | 'error'): void 
   setTimeout(() => {
     selectorFeedback.style.display = 'none';
   }, 5000);
+}
+
+/**
+ * Update credit status indicators based on provider configuration
+ */
+function updateCreditStatusIndicators(): void {
+  const creditStatuses = {
+    openai: openaiCreditStatus,
+    anthropic: anthropicCreditStatus,
+    perplexity: perplexityCreditStatus,
+  };
+
+  for (const providerId of Object.keys(providers) as ProviderId[]) {
+    const providerElements = providers[providerId];
+    const statusElement = creditStatuses[providerId];
+    const isConfigured = providerElements.apiKeyInput.value.trim() !== '';
+    const isEnabled = providerElements.enabledCheckbox.checked;
+
+    if (isEnabled && isConfigured) {
+      statusElement.textContent = 'Configured';
+      statusElement.className = 'credit-status configured';
+    } else if (isConfigured) {
+      statusElement.textContent = 'Configured (Disabled)';
+      statusElement.className = 'credit-status disabled';
+    } else {
+      statusElement.textContent = 'Not configured';
+      statusElement.className = 'credit-status not-configured';
+    }
+  }
 }

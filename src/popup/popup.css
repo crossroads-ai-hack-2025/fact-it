@@ -676,3 +676,151 @@ footer {
   margin: 0 -20px -20px -20px; /* Extend to edges */
   z-index: 10;
 }
+
+/* Credits Section */
+.credits-section {
+  margin-bottom: 24px;
+}
+
+.credits-details {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.credits-details summary {
+  padding: 16px;
+  background: #f8f9fa;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.credits-details summary:hover {
+  background: #e9ecef;
+}
+
+.credits-details summary h3 {
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+}
+
+.credits-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.credits-details summary::before {
+  content: '▶';
+  margin-right: 8px;
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.credits-details[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.credits-content {
+  padding: 16px;
+}
+
+.provider-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.credit-card {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: box-shadow 0.2s;
+}
+
+.credit-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.credit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.credit-header h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.credit-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.credit-status.configured {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.credit-status.disabled {
+  color: #f57c00;
+  background: #fff3e0;
+}
+
+.credit-status.not-configured {
+  color: #757575;
+  background: #eeeeee;
+}
+
+.credit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credit-info p {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.credit-link {
+  display: inline-block;
+  padding: 8px 12px;
+  background: #667eea;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.credit-link:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #666;
+  background: #fff9e6;
+  padding: 8px 10px;
+  border-left: 3px solid #ffc107;
+  border-radius: 4px;
+  margin-top: 4px;
+}

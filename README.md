@@ -38,7 +38,7 @@ Fact-It: [Facebook] 🔍 Starting selector discovery...
 - **Recommended**: 2 or more API keys to consolidate answers from different providers for better accuracy and consensus
 
 **Setting up API keys:**
-1. Click the extension icon in Chrome toolbar
+1. Click the extension icon in Chrome toolbar after following the Quick Start instructions below
 2. Enter your API key(s) in the popup settings
 3. Enable the providers you want to use
 4. Click "Save Settings"
